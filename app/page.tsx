@@ -1,118 +1,255 @@
 "use client";
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { Activity, BarChart2, Zap, Globe, ShieldAlert, Search } from 'lucide-react';
-import SMCScanner from '../components/SMCScanner';
-import LiveChart from '../components/LiveChart';
-import { DarkPoolTape, MacroDocket } from '../components/MacroFeed';
+import React, { useState, useEffect } from 'react';
+import { Search, Activity, BarChart2, Layers, Newspaper, Crosshair } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
-export default function ApexTerminal() {
-  // 1. GLOBAL STATE: This controls the entire terminal
+export default function Terminal() {
   const [activeTicker, setActiveTicker] = useState("NVDA");
   const [searchInput, setSearchInput] = useState("");
 
-  // 2. THE SEARCH HANDLER: Triggers when you hit Enter
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
       setActiveTicker(searchInput.toUpperCase().trim());
-      setSearchInput(""); // Clear the bar after search
+      setSearchInput(""); // Clear the bar after searching
     }
   };
 
   return (
-    <div className="flex h-screen bg-apex-bg text-white font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
       
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="w-16 flex flex-col items-center py-6 bg-apex-panel border-r border-apex-border">
-        <div className="w-10 h-10 rounded bg-apex-cyan/20 flex items-center justify-center border border-apex-cyan mb-8 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]">
-          <Zap className="text-apex-cyan w-5 h-5" />
+      {/* HEADER & MASTER SEARCH */}
+      <header className="h-16 border-b border-[#222] bg-[#111] flex items-center justify-between px-6 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center">
+            <Activity className="text-cyan-400 w-4 h-4" />
+          </div>
+          <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE</span>
         </div>
-        <nav className="flex flex-col gap-6">
-          <Link href="/"><NavItem icon={<BarChart2 />} active /></Link>
-          <Link href="/sports"><NavItem icon={<Activity />} /></Link>
-          <NavItem icon={<Globe />} />
-          <NavItem icon={<ShieldAlert />} />
-        </nav>
-      </aside>
 
-      {/* MAIN TERMINAL GRID */}
-      <main className="flex-1 p-2 flex flex-col gap-2 h-full overflow-hidden">
+        <form onSubmit={handleSearch} className="relative w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input 
+            type="text" 
+            placeholder="Search Ticker (e.g. SPY, NVDA)..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full bg-[#1a1a1a] border border-[#333] rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase"
+          />
+        </form>
+
+        <div className="font-mono text-sm text-gray-400">
+          LIVE TELEMETRY: <span className="text-cyan-400 font-bold">{activeTicker}</span>
+        </div>
+      </header>
+
+      {/* TERMINAL GRID */}
+      <main className="flex-1 p-4 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
         
-        {/* TOP HEADER & COMMAND CENTER */}
-        <header className="h-14 bg-apex-panel border border-apex-border rounded-md flex items-center px-4 justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <span className="text-apex-cyan font-mono font-bold text-lg">ACE'S HOUSE</span>
-            <span className="text-apex-muted text-sm tracking-widest hidden md:block">| QUANTITATIVE PIPELINE</span>
+        {/* MODULE 1: GEX SURFACE (Spans 8 columns, Top Row) */}
+        <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+            <BarChart2 className="w-4 h-4 text-purple-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">GAMMA EXPOSURE (GEX)</h2>
           </div>
-
-          {/* THE SEARCH BAR */}
-          <form onSubmit={handleSearch} className="flex items-center bg-apex-bg border border-apex-border rounded-md px-3 py-1.5 focus-within:border-apex-cyan transition-colors w-64">
-            <Search className="w-4 h-4 text-apex-muted mr-2" />
-            <input 
-              type="text" 
-              placeholder="Enter Ticker (e.g. SPY)..." 
-              className="bg-transparent border-none outline-none text-sm font-mono text-white w-full uppercase placeholder:normal-case"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-          </form>
-
-          <div className="font-mono text-sm text-apex-muted flex gap-4">
-            <span>SPY <span className="text-apex-green">+1.2%</span></span>
-            <span>QQQ <span className="text-apex-green">+1.5%</span></span>
+          <div className="flex-1 overflow-hidden">
+            <GexSurface ticker={activeTicker} />
           </div>
-        </header>
+        </section>
 
-        {/* 3-PANE DATA MATRIX */}
-        <div className="flex-1 flex gap-2 min-h-0">
-          
-          {/* LEFT PANE: SMC Radar */}
-          <section className="w-1/4 bg-apex-panel border border-apex-border rounded-md flex flex-col p-4 overflow-hidden">
-            <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0">SMC RADAR</h2>
-            <SMCScanner />
-          </section>
+        {/* MODULE 2: OPTIONS FLOW TAPE (Spans 4 columns, Full Height) */}
+        <section className="col-span-4 row-span-2 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+            <Layers className="w-4 h-4 text-cyan-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE PREMIUM FLOW</h2>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <OptionsFlow ticker={activeTicker} />
+          </div>
+        </section>
 
-          {/* CENTER PANE: Live Charts */}
-          <section className="w-2/4 bg-apex-panel border border-apex-border rounded-md flex flex-col p-4 overflow-hidden">
-            <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0">
-              LIVE TELEMETRY <span className="text-apex-cyan">({activeTicker})</span>
-            </h2>
-            <div className="flex-1 min-h-0 relative">
-              {/* Pass the active ticker down into the chart component */}
-              <LiveChart ticker={activeTicker} /> 
-            </div>
-          </section>
+        {/* MODULE 3: HEATMAP & SMC (Spans 5 columns, Bottom Row) */}
+        <section className="col-span-5 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+            <Crosshair className="w-4 h-4 text-green-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">SMC TARGETS & HEATMAP</h2>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <SMCRadar ticker={activeTicker} />
+          </div>
+        </section>
 
-          {/* RIGHT PANE: Macro Feed & Tape */}
-          <section className="w-1/4 flex flex-col gap-2 overflow-hidden">
-            <div className="flex-1 bg-apex-panel border border-apex-border rounded-md p-4 flex flex-col min-h-0">
-              <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0">DARK POOL TAPE</h2>
-              <DarkPoolTape />
-            </div>
-            <div className="flex-1 bg-apex-panel border border-apex-border rounded-md p-4 flex flex-col min-h-0">
-              <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0">MACRO DOCKET</h2>
-              <MacroDocket ticker={activeTicker} />
-            </div>
-          </section>
+        {/* MODULE 4: MACRO DOCKET (Spans 3 columns, Bottom Row) */}
+        <section className="col-span-3 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+            <Newspaper className="w-4 h-4 text-yellow-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">MACRO DOCKET</h2>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <MacroDocket ticker={activeTicker} />
+          </div>
+        </section>
 
-        </div>
       </main>
     </div>
   );
 }
 
-// 3. BULLETPROOF NAV ITEM: Vertically stacked to prevent Next.js from throwing build errors
-function NavItem({ icon, active = false }: { icon: React.ReactNode, active?: boolean }) {
+// ------------------------------------------------------------------
+// MODULE COMPONENTS 
+// ------------------------------------------------------------------
+
+function GexSurface({ ticker }: { ticker: string }) {
+  const [gexData, setGexData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`https://apex-engine-production.up.railway.app/api/gex?ticker=${ticker}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const mockData = data.data?.length ? data.data : [
+          { strike: 400, gex: -1500 }, { strike: 405, gex: -800 }, 
+          { strike: 410, gex: -200 }, { strike: 415, gex: 1200 }, 
+          { strike: 420, gex: 3500 }, { strike: 425, gex: 1800 }
+        ];
+        setGexData(mockData);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [ticker]);
+
+  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">CALCULATING GAMMA WALLS...</div>;
+
   return (
-    <div 
-      className={`p-3 rounded-md cursor-pointer transition-colors ${
-        active 
-          ? 'bg-apex-border text-white' 
-          : 'text-apex-muted hover:text-white hover:bg-apex-border/50'
-      }`}
-    >
-      {icon}
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={gexData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <XAxis dataKey="strike" stroke="#555" tick={{ fill: '#888', fontSize: 12, fontFamily: 'monospace' }} />
+        <YAxis stroke="#555" tick={{ fill: '#888', fontSize: 12, fontFamily: 'monospace' }} />
+        <Tooltip 
+          cursor={{ fill: '#222' }}
+          contentStyle={{ backgroundColor: '#111', borderColor: '#333', color: '#fff', fontFamily: 'monospace', fontSize: '12px' }}
+          formatter={(value: any) => [`${value}M`, 'Gamma']} 
+        />
+        <ReferenceLine y={0} stroke="#444" />
+        <Bar dataKey="gex" radius={[2, 2, 0, 0]}>
+          {gexData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.gex > 0 ? '#00ffff' : '#ef4444'} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function OptionsFlow({ ticker }: { ticker: string }) {
+  const [tape, setTape] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`https://apex-engine-production.up.railway.app/api/flow?ticker=${ticker}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setTape(data.tape || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch tape", err);
+        setLoading(false);
+      });
+  }, [ticker]);
+
+  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
+
+  return (
+    <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
+      {tape.map((trade, i) => (
+        <div key={i} className="flex items-center justify-between p-2 bg-[#1a1a1a] border border-[#333] rounded text-sm font-mono shrink-0">
+          <div className="flex flex-col">
+            <span className="text-white font-bold">{trade.ticker}</span>
+            <span className="text-xs text-gray-500">{trade.time || "LIVE"}</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-red-400">{trade.premium}</span>
+            <span className="text-xs text-gray-400">Size: {trade.size}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MacroDocket({ ticker }: { ticker: string }) {
+  const [news, setNews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`https://apex-engine-production.up.railway.app/api/news?ticker=${ticker}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setNews(data.news || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch news", err);
+        setLoading(false);
+      });
+  }, [ticker]);
+
+  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
+
+  return (
+    <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
+      {news.map((item, i) => (
+        <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-colors cursor-pointer shrink-0">
+          <h3 className="text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
+          <p className="text-xs text-gray-500 font-mono">{item.source}</p>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function SMCRadar({ ticker }: { ticker: string }) {
+  const [signals, setSignals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`https://apex-engine-production.up.railway.app/api/signals?type=swings`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSignals(data.signals || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [ticker]); 
+
+  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">CALCULATING EDGE...</div>;
+
+  return (
+    <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
+      {signals.map((sig, i) => (
+        <div key={i} className="flex flex-col p-3 bg-[#1a1a1a] border border-[#333] rounded shrink-0">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-white font-bold text-lg">{sig.ticker}</span>
+            <span className={`px-2 py-1 text-xs font-bold rounded ${sig.dir === 'PUTS' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+              {sig.type} {sig.dir}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm font-mono text-gray-400">
+            <div className="flex flex-col">
+              <span>Entry: <span className="text-white">${sig.entry}</span></span>
+              <span>Target: <span className="text-green-400">${sig.target}</span></span>
+            </div>
+            <div className="flex flex-col items-end justify-end">
+              <span>Edge: {sig.conf}%</span>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
