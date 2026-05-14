@@ -6,12 +6,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLin
 export default function Terminal() {
   const [activeTicker, setActiveTicker] = useState("NVDA");
   const [searchInput, setSearchInput] = useState("");
+  const [module3Tab, setModule3Tab] = useState<"SMC" | "HEATMAP">("SMC");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
       setActiveTicker(searchInput.toUpperCase().trim());
-      setSearchInput(""); // Clear the bar after searching
+      setSearchInput(""); 
     }
   };
 
@@ -21,7 +22,7 @@ export default function Terminal() {
       {/* HEADER & MASTER SEARCH */}
       <header className="h-16 border-b border-[#222] bg-[#111] flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,255,0.2)]">
             <Activity className="text-cyan-400 w-4 h-4" />
           </div>
           <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE</span>
@@ -34,12 +35,12 @@ export default function Terminal() {
             placeholder="Search Ticker (e.g. SPY, NVDA)..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full bg-[#1a1a1a] border border-[#333] rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase"
+            className="w-full bg-[#1a1a1a] border border-[#333] rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase shadow-inner"
           />
         </form>
 
         <div className="font-mono text-sm text-gray-400">
-          LIVE TELEMETRY: <span className="text-cyan-400 font-bold">{activeTicker}</span>
+          LIVE TELEMETRY: <span className="text-cyan-400 font-bold ml-2">{activeTicker}</span>
         </div>
       </header>
 
@@ -47,7 +48,7 @@ export default function Terminal() {
       <main className="flex-1 p-4 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
         
         {/* MODULE 1: GEX SURFACE (Spans 8 columns, Top Row) */}
-        <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
+        <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
           <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
             <BarChart2 className="w-4 h-4 text-purple-400" />
             <h2 className="text-xs font-bold text-gray-400 tracking-widest">GAMMA EXPOSURE (GEX)</h2>
@@ -58,7 +59,7 @@ export default function Terminal() {
         </section>
 
         {/* MODULE 2: OPTIONS FLOW TAPE (Spans 4 columns, Full Height) */}
-        <section className="col-span-4 row-span-2 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
+        <section className="col-span-4 row-span-2 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
           <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
             <Layers className="w-4 h-4 text-cyan-400" />
             <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE PREMIUM FLOW</h2>
@@ -69,18 +70,30 @@ export default function Terminal() {
         </section>
 
         {/* MODULE 3: HEATMAP & SMC (Spans 5 columns, Bottom Row) */}
-        <section className="col-span-5 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
-          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
-            <Crosshair className="w-4 h-4 text-green-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest">SMC TARGETS & HEATMAP</h2>
+        <section className="col-span-5 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+          <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setModule3Tab("SMC")}
+                className={`flex items-center gap-2 text-xs font-bold tracking-widest transition-colors pb-1 ${module3Tab === 'SMC' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-600 hover:text-gray-400'}`}
+              >
+                <Crosshair className="w-4 h-4" /> SMC TARGETS
+              </button>
+              <button 
+                onClick={() => setModule3Tab("HEATMAP")}
+                className={`flex items-center gap-2 text-xs font-bold tracking-widest transition-colors pb-1 ${module3Tab === 'HEATMAP' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-600 hover:text-gray-400'}`}
+              >
+                <Activity className="w-4 h-4" /> HEATMAP
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-hidden">
-            <SMCRadar ticker={activeTicker} />
+            {module3Tab === "SMC" ? <SMCRadar ticker={activeTicker} /> : <OptionsHeatmap ticker={activeTicker} />}
           </div>
         </section>
 
         {/* MODULE 4: MACRO DOCKET (Spans 3 columns, Bottom Row) */}
-        <section className="col-span-3 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col">
+        <section className="col-span-3 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
           <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
             <Newspaper className="w-4 h-4 text-yellow-400" />
             <h2 className="text-xs font-bold text-gray-400 tracking-widest">MACRO DOCKET</h2>
@@ -154,10 +167,7 @@ function OptionsFlow({ ticker }: { ticker: string }) {
         setTape(data.tape || []);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error("Failed to fetch tape", err);
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
@@ -165,13 +175,13 @@ function OptionsFlow({ ticker }: { ticker: string }) {
   return (
     <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
       {tape.map((trade, i) => (
-        <div key={i} className="flex items-center justify-between p-2 bg-[#1a1a1a] border border-[#333] rounded text-sm font-mono shrink-0">
+        <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a1a] border border-[#333] hover:border-[#444] rounded text-sm font-mono shrink-0 transition-colors">
           <div className="flex flex-col">
-            <span className="text-white font-bold">{trade.ticker}</span>
+            <span className="text-white font-bold tracking-wider">{trade.ticker}</span>
             <span className="text-xs text-gray-500">{trade.time || "LIVE"}</span>
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-red-400">{trade.premium}</span>
+            <span className="text-red-400 font-bold">{trade.premium}</span>
             <span className="text-xs text-gray-400">Size: {trade.size}</span>
           </div>
         </div>
@@ -192,10 +202,7 @@ function MacroDocket({ ticker }: { ticker: string }) {
         setNews(data.news || []);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error("Failed to fetch news", err);
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
@@ -203,7 +210,7 @@ function MacroDocket({ ticker }: { ticker: string }) {
   return (
     <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
       {news.map((item, i) => (
-        <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-colors cursor-pointer shrink-0">
+        <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
           <h3 className="text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
           <p className="text-xs text-gray-500 font-mono">{item.source}</p>
         </a>
@@ -232,7 +239,7 @@ function SMCRadar({ ticker }: { ticker: string }) {
   return (
     <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
       {signals.map((sig, i) => (
-        <div key={i} className="flex flex-col p-3 bg-[#1a1a1a] border border-[#333] rounded shrink-0">
+        <div key={i} className="flex flex-col p-3 bg-[#1a1a1a] border border-[#333] rounded shrink-0 transition-all hover:border-[#555]">
           <div className="flex justify-between items-center mb-2">
             <span className="text-white font-bold text-lg">{sig.ticker}</span>
             <span className={`px-2 py-1 text-xs font-bold rounded ${sig.dir === 'PUTS' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
@@ -245,11 +252,74 @@ function SMCRadar({ ticker }: { ticker: string }) {
               <span>Target: <span className="text-green-400">${sig.target}</span></span>
             </div>
             <div className="flex flex-col items-end justify-end">
-              <span>Edge: {sig.conf}%</span>
+              <span>Edge: <span className="text-white">{sig.conf}%</span></span>
             </div>
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function OptionsHeatmap({ ticker }: { ticker: string }) {
+  const [heatmapData, setHeatmapData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`https://apex-engine-production.up.railway.app/api/heatmap?ticker=${ticker}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const mockData = [
+          { strike: 430, exp1: 80, exp2: 40, exp3: 20 },
+          { strike: 425, exp1: 150, exp2: 90, exp3: 45 },
+          { strike: 420, exp1: 300, exp2: 210, exp3: 110 },
+          { strike: 415, exp1: 800, exp2: 450, exp3: 200 }, 
+          { strike: 410, exp1: 250, exp2: 180, exp3: 90 },
+          { strike: 405, exp1: 100, exp2: 60, exp3: 30 },
+        ];
+        setHeatmapData(mockData);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [ticker]);
+
+  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RENDERING VOLATILITY MATRIX...</div>;
+
+  const getCellColor = (vol: number) => {
+    if (vol > 500) return 'bg-cyan-400 text-black font-bold shadow-[0_0_8px_rgba(0,255,255,0.5)] border border-cyan-300';
+    if (vol > 200) return 'bg-cyan-500/60 text-white border border-cyan-500/50';
+    if (vol > 100) return 'bg-cyan-500/30 text-gray-300 border border-[#333]';
+    return 'bg-[#1a1a1a] text-gray-500 border border-[#333]';
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden font-mono text-xs">
+      <div className="grid grid-cols-4 gap-1 mb-2 text-gray-400 font-bold text-center border-b border-[#333] pb-2 shrink-0">
+        <div>STRIKE</div>
+        <div>0 DTE</div>
+        <div>7 DTE</div>
+        <div>30 DTE</div>
+      </div>
+      
+      <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
+        {heatmapData.map((row, i) => (
+          <div key={i} className="grid grid-cols-4 gap-1 text-center">
+            <div className="flex items-center justify-center bg-[#222] border border-[#333] rounded py-2 font-bold text-gray-200">
+              ${row.strike}
+            </div>
+            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp1)}`}>
+              {row.exp1}
+            </div>
+            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp2)}`}>
+              {row.exp2}
+            </div>
+            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp3)}`}>
+              {row.exp3}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
