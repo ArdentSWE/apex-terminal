@@ -17,7 +17,7 @@ export default function SMCScanner() {
 
   // FETCH DATA FROM PYTHON BACKEND
   useEffect(() => {
-    fetch('http://localhost:8000/api/smc')
+    fetch('https://apex-engine-production.up.railway.app/api/smc')
       .then((res) => res.json())
       .then((data) => {
         setPlays(data);
