@@ -18,7 +18,6 @@ export default function SportsMatrix() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
-  // Dynamic Market Options based on Mode and Sport
   const getMarketOptions = () => {
     if (mode === "PREDICTOR") {
       return ["Moneyline, Spread, Total", "Moneyline Only", "Spreads Only", "Over/Under Totals"];
@@ -39,7 +38,6 @@ export default function SportsMatrix() {
     setLoading(true);
     setResult(null);
 
-    // Determine the correct API endpoint based on the selected mode
     const endpoint = mode === "PREDICTOR" 
       ? `${ENGINE_URL}/api/sports/predictor?team1=${team1}&team2=${team2}&sport=${sport}&date=${date}&market=${market}`
       : `${ENGINE_URL}/api/sports/parlays?league=${sport}&team1=${team1}&team2=${team2}&date=${date}&market=${market}&legs=${legs}`;
@@ -48,22 +46,26 @@ export default function SportsMatrix() {
       const res = await fetch(endpoint);
       const data = await res.json();
       
-      // Simulating the backend response if the Python endpoints aren't fully catching these new params yet
-      setTimeout(() => {
-        setResult({
-          type: mode,
-          sport: sport,
-          matchup: `${team1.toUpperCase()} vs ${team2.toUpperCase()}`,
-          date: date,
-          market: market,
-          confidence: mode === "PREDICTOR" ? 92 : 84,
-          data: data
-        });
-        setLoading(false);
-      }, 1500);
+      setResult({
+        type: mode,
+        sport: sport,
+        matchup: `${team1.toUpperCase()} vs ${team2.toUpperCase()}`,
+        date: date,
+        market: market,
+        ai_text: data.result_text // Instantly grabs the actual Anthropic 4.7 string
+      });
+      setLoading(false);
 
     } catch (err) {
       console.error(err);
+      setResult({
+        type: mode,
+        sport: sport,
+        matchup: `${team1.toUpperCase()} vs ${team2.toUpperCase()}`,
+        date: date,
+        market: market,
+        ai_text: "❌ Neural link disrupted. Could not reach the Apex Engine."
+      });
       setLoading(false);
     }
   };
@@ -81,11 +83,10 @@ export default function SportsMatrix() {
         </div>
         <div className="font-mono text-sm text-gray-400 flex items-center gap-2">
           <Cpu className="w-4 h-4 text-purple-400" />
-          POWERED BY: <span className="text-purple-400 font-bold">CLAUDE OPUS 4.7</span>
+          POWERED BY: <span className="text-purple-400 font-bold">APEX QUANT ENGINE</span>
         </div>
       </header>
 
-      {/* MAIN TWO-COLUMN WORKSPACE */}
       <main className="flex-1 p-4 grid grid-cols-12 gap-4 min-h-0">
         
         {/* LEFT COLUMN: THE INPUT TERMINAL */}
@@ -99,7 +100,6 @@ export default function SportsMatrix() {
           <div className="p-4 overflow-y-auto custom-scrollbar flex-1">
             <form onSubmit={handleGenerate} className="flex flex-col gap-5">
               
-              {/* MODE SELECTOR */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-500 tracking-widest">OPERATION MODE</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -112,7 +112,6 @@ export default function SportsMatrix() {
                 </div>
               </div>
 
-              {/* SPORT SELECTOR */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-500 tracking-widest">TARGET SPORT</label>
                 <select value={sport} onChange={(e) => setSport(e.target.value)} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-white focus:outline-none focus:border-green-500 font-mono">
@@ -124,7 +123,6 @@ export default function SportsMatrix() {
                 </select>
               </div>
 
-              {/* MATCHUP INPUTS */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-500 tracking-widest">MATCHUP</label>
                 <div className="flex items-center gap-2">
@@ -134,13 +132,11 @@ export default function SportsMatrix() {
                 </div>
               </div>
 
-              {/* DATE SELECTOR */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-500 tracking-widest">DATE</label>
                 <input type="text" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-white focus:outline-none focus:border-green-500 font-mono" required />
               </div>
 
-              {/* MARKET TYPE */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-500 tracking-widest">MARKET TYPE</label>
                 <select value={market} onChange={(e) => setMarket(e.target.value)} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-white focus:outline-none focus:border-green-500 font-mono">
@@ -148,7 +144,6 @@ export default function SportsMatrix() {
                 </select>
               </div>
 
-              {/* CONDITIONAL: NUMBER OF LEGS FOR PARLAY */}
               {mode === "PARLAY" && (
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-gray-500 tracking-widest">NUMBER OF LEGS</label>
@@ -156,7 +151,6 @@ export default function SportsMatrix() {
                 </div>
               )}
 
-              {/* SUBMIT BUTTON */}
               <button type="submit" disabled={loading} className="mt-4 w-full bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded uppercase tracking-widest transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
                 {loading ? <span className="animate-pulse">BOOTING ENGINE...</span> : <>ENGAGE APEX NEURAL LINK <Activity className="w-4 h-4" /></>}
               </button>
@@ -192,7 +186,6 @@ export default function SportsMatrix() {
             {result && !loading && (
               <div className="animate-fade-in border border-[#333] bg-[#1a1a1a] rounded p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                 
-                {/* Embed Header */}
                 <div className="flex justify-between items-start border-b border-[#333] pb-4 mb-4">
                   <div>
                     <h1 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
@@ -206,24 +199,11 @@ export default function SportsMatrix() {
                   </div>
                 </div>
 
-                {/* Simulated AI Output Format (This mirrors your Python Bot) */}
-                <div className="font-mono text-sm text-gray-300 leading-relaxed mb-6 space-y-4">
-                  <p className="text-white">🔥 <strong className="text-green-400">THE QUANT EDGE:</strong> Deploying algorithmic analysis based on L20 pacing and usage absorption.</p>
-                  
-                  <div className="bg-[#111] border border-[#222] p-4 rounded text-white">
-                    <p>🎯 <strong>CONFIDENCE:</strong> {result.confidence}%</p>
-                    <p>💰 <strong>UNIT SIZING:</strong> 1.0U (Standard Risk)</p>
-                  </div>
-
-                  <p className="text-white font-bold mb-2">🧠 THE THESIS:</p>
-                  <ul className="list-none space-y-2 pl-2">
-                    <li className="flex items-start gap-2"><span className="text-green-500">▶</span> The historical backtest confirms an 85% hit rate over the L20 games for this specific matchup configuration.</li>
-                    <li className="flex items-start gap-2"><span className="text-green-500">▶</span> Live odds scraping indicates massive institutional line movement favoring the Over.</li>
-                    <li className="flex items-start gap-2"><span className="text-green-500">▶</span> Injury matrix confirms secondary players will absorb a 15% increase in usage rate.</li>
-                  </ul>
+                {/* THE REAL ANTHROPIC TEXT */}
+                <div className="font-mono text-sm text-gray-300 leading-relaxed mb-6 whitespace-pre-wrap">
+                  {result.ai_text}
                 </div>
 
-                {/* Risk Footer */}
                 <div className="mt-8 border-t border-[#333] pt-4">
                   <p className="text-xs text-gray-500 font-mono italic">
                     ⚠️ RISK DISCLOSURE: This is an algorithmic data map, not financial advice. Wagering carries extreme variance. Strictly manage your bankroll and tail at your own risk.
