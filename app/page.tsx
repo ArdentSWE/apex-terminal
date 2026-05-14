@@ -1,12 +1,13 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Search, Activity, BarChart2, Layers, Newspaper, Crosshair } from 'lucide-react';
+import { Search, Activity, BarChart2, Layers, Newspaper, Crosshair, Globe, ArrowLeft, Target, Zap, ShieldAlert } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
+const ENGINE_URL = "https://apex-engine-production.up.railway.app"; 
+
 export default function Terminal() {
-  const [activeTicker, setActiveTicker] = useState("NVDA");
   const [searchInput, setSearchInput] = useState("");
-  const [module3Tab, setModule3Tab] = useState<"SMC" | "HEATMAP">("SMC");
+  const [activeTicker, setActiveTicker] = useState<string | null>(null); // Null means Global View
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function Terminal() {
           <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE</span>
         </div>
 
-        <form onSubmit={handleSearch} className="relative w-96">
+        <form onSubmit={handleSearch} className="relative w-[400px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input 
             type="text" 
@@ -39,85 +40,240 @@ export default function Terminal() {
           />
         </form>
 
-        <div className="font-mono text-sm text-gray-400">
-          LIVE TELEMETRY: <span className="text-cyan-400 font-bold ml-2">{activeTicker}</span>
+        <div className="font-mono text-sm text-gray-400 flex items-center gap-4">
+          {activeTicker && (
+            <button onClick={() => setActiveTicker(null)} className="flex items-center gap-1 text-xs hover:text-white transition-colors bg-[#222] px-3 py-1 rounded border border-[#333]">
+              <ArrowLeft className="w-3 h-3" /> BACK TO GLOBAL
+            </button>
+          )}
+          <span>TELEMETRY: <span className="text-cyan-400 font-bold ml-1">{activeTicker ? activeTicker : "GLOBAL MACRO"}</span></span>
         </div>
       </header>
 
-      {/* TERMINAL GRID */}
-      <main className="flex-1 p-4 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
-        
-        {/* MODULE 1: GEX SURFACE (Spans 8 columns, Top Row) */}
-        <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
-          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
-            <BarChart2 className="w-4 h-4 text-purple-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest">GAMMA EXPOSURE (GEX)</h2>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <GexSurface ticker={activeTicker} />
-          </div>
-        </section>
+      {/* DYNAMIC VIEW ROUTING */}
+      {activeTicker ? <TickerDashboard ticker={activeTicker} /> : <GlobalDashboard />}
 
-        {/* MODULE 2: OPTIONS FLOW TAPE (Spans 4 columns, Full Height) */}
-        <section className="col-span-4 row-span-2 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
-          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
-            <Layers className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE PREMIUM FLOW</h2>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <OptionsFlow ticker={activeTicker} />
-          </div>
-        </section>
-
-        {/* MODULE 3: HEATMAP & SMC (Spans 5 columns, Bottom Row) */}
-        <section className="col-span-5 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
-          <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setModule3Tab("SMC")}
-                className={`flex items-center gap-2 text-xs font-bold tracking-widest transition-colors pb-1 ${module3Tab === 'SMC' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-600 hover:text-gray-400'}`}
-              >
-                <Crosshair className="w-4 h-4" /> SMC TARGETS
-              </button>
-              <button 
-                onClick={() => setModule3Tab("HEATMAP")}
-                className={`flex items-center gap-2 text-xs font-bold tracking-widest transition-colors pb-1 ${module3Tab === 'HEATMAP' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-600 hover:text-gray-400'}`}
-              >
-                <Activity className="w-4 h-4" /> HEATMAP
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            {module3Tab === "SMC" ? <SMCRadar ticker={activeTicker} /> : <OptionsHeatmap ticker={activeTicker} />}
-          </div>
-        </section>
-
-        {/* MODULE 4: MACRO DOCKET (Spans 3 columns, Bottom Row) */}
-        <section className="col-span-3 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
-          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
-            <Newspaper className="w-4 h-4 text-yellow-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest">MACRO DOCKET</h2>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <MacroDocket ticker={activeTicker} />
-          </div>
-        </section>
-
-      </main>
     </div>
   );
 }
 
 // ------------------------------------------------------------------
-// MODULE COMPONENTS - TOP TIER ARCHITECTURE
+// VIEW 1: GLOBAL MACRO DASHBOARD
+// ------------------------------------------------------------------
+function GlobalDashboard() {
+  const [news, setNews] = useState<any[]>([]);
+  const [plays, setPlays] = useState<any[]>([]);
+  const [loadingPlays, setLoadingPlays] = useState(true);
+
+  useEffect(() => {
+    // Fetch Macro News
+    fetch(`${ENGINE_URL}/api/news`)
+      .then(res => res.json())
+      .then(data => setNews(data.news || []))
+      .catch(() => setNews([]));
+
+    // Fetch Global Trade Setups from Claude 4.7
+    setLoadingPlays(true);
+    fetch(`${ENGINE_URL}/api/equities/global_plays`)
+      .then(res => res.json())
+      .then(data => {
+        setPlays(data.plays || []);
+        setLoadingPlays(false);
+      })
+      .catch(() => setLoadingPlays(false));
+  }, []);
+
+  return (
+    <main className="flex-1 p-4 grid grid-cols-12 gap-4 min-h-0">
+      {/* LEFT COL: MACRO NEWS */}
+      <section className="col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+          <Globe className="w-4 h-4 text-blue-400" />
+          <h2 className="text-xs font-bold text-gray-400 tracking-widest">GLOBAL BREAKING NEWS</h2>
+        </div>
+        <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
+          {news.length === 0 ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : news.map((item, i) => (
+            <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
+              <h3 className="text-sm text-gray-200 font-medium mb-2">{item.title}</h3>
+              <p className="text-xs text-gray-500 font-mono">Source: <span className="text-cyan-400">{item.source}</span></p>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* RIGHT COL: AI ACTIVE PLAYS */}
+      <section className="col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden">
+        <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE QUANTITATIVE SETUPS</h2>
+          </div>
+          <span className="text-xs font-mono text-purple-400 border border-purple-500/30 bg-purple-500/10 px-2 py-1 rounded">POWERED BY APEX OMNI-AGENT</span>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
+          {loadingPlays ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-cyan-500 font-mono text-sm">
+              <Activity className="w-12 h-12 mb-4 animate-bounce" />
+              <p className="animate-pulse">SCANNING SMART MONEY CONCEPTS...</p>
+            </div>
+          ) : plays.length === 0 ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm">
+              <p>NO ACTIVE SETUPS FOUND. CHECK BACK AT OPEN.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {plays.map((play, i) => (
+                <div key={i} className="flex flex-col p-5 bg-[#1a1a1a] border border-[#333] rounded shadow-inner">
+                  <div className="flex justify-between items-start mb-3 border-b border-[#333] pb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-black text-white">{play.ticker}</span>
+                      <span className={`px-2 py-1 text-xs font-bold font-mono rounded border ${play.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : play.play_type === 'SWING' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-purple-500/20 text-purple-400 border-purple-500/50'}`}>
+                        {play.play_type}
+                      </span>
+                    </div>
+                    <div className={`px-3 py-1 text-sm font-bold font-mono rounded ${play.direction === 'CALLS' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {play.strike} {play.direction}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mb-4 font-mono text-sm text-gray-400">
+                    <div>🎯 Confidence: <span className="text-white font-bold">{play.confidence}%</span></div>
+                    <div>⏳ Expiration: <span className="text-white font-bold">{play.expiration}</span></div>
+                  </div>
+                  <div className="text-sm text-gray-300 bg-[#111] border border-[#222] p-3 rounded font-mono leading-relaxed">
+                    <span className="text-yellow-400 font-bold mr-2">🧠 THESIS:</span>{play.thesis}
+                  </div>
+                </div>
+              ))}
+              <div className="mt-4 border-t border-[#333] pt-4">
+                  <p className="text-xs text-gray-500 font-mono italic">
+                    ⚠️ RISK DISCLOSURE: This data is generated autonomously via algorithmic scans. It is NOT financial advice. Options carry extreme variance. Tail strictly at your own risk.
+                  </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+// ------------------------------------------------------------------
+// VIEW 2: TICKER SPECIFIC DASHBOARD
+// ------------------------------------------------------------------
+function TickerDashboard({ ticker }: { ticker: string }) {
+  return (
+    <main className="flex-1 p-4 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
+      
+      {/* MODULE 1: GEX SURFACE (Spans 8 columns, Top Row) */}
+      <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+          <BarChart2 className="w-4 h-4 text-purple-400" />
+          <h2 className="text-xs font-bold text-gray-400 tracking-widest">GAMMA EXPOSURE (GEX) - {ticker}</h2>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <GexSurface ticker={ticker} />
+        </div>
+      </section>
+
+      {/* MODULE 2: OPTIONS FLOW TAPE (Spans 4 columns, Top Row) */}
+      <section className="col-span-4 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+          <Layers className="w-4 h-4 text-cyan-400" />
+          <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE PREMIUM FLOW</h2>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <OptionsFlow ticker={ticker} />
+        </div>
+      </section>
+
+      {/* MODULE 3: AI TRADE THESIS (Spans 5 columns, Bottom Row) */}
+      <section className="col-span-5 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+        <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-green-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">APEX AI THESIS</h2>
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <TickerAiThesis ticker={ticker} />
+        </div>
+      </section>
+
+      {/* MODULE 4: HEATMAP (Spans 4 columns, Bottom Row) */}
+      <section className="col-span-4 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+           <Activity className="w-4 h-4 text-orange-400" />
+           <h2 className="text-xs font-bold text-gray-400 tracking-widest">OPTIONS MATRIX</h2>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <OptionsHeatmap ticker={ticker} />
+        </div>
+      </section>
+
+      {/* MODULE 5: TICKER NEWS (Spans 3 columns, Bottom Row) */}
+      <section className="col-span-3 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+          <Newspaper className="w-4 h-4 text-yellow-400" />
+          <h2 className="text-xs font-bold text-gray-400 tracking-widest">TICKER DOCKET</h2>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <MacroDocket ticker={ticker} />
+        </div>
+      </section>
+
+    </main>
+  );
+}
+
+// ------------------------------------------------------------------
+// SUB-COMPONENTS FOR TICKER DASHBOARD
 // ------------------------------------------------------------------
 
-const ENGINE_URL = "https://apex-engine-production.up.railway.app"; 
+function TickerAiThesis({ ticker }: { ticker: string }) {
+  const [idea, setIdea] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${ENGINE_URL}/api/equities/ticker_idea?ticker=${ticker}`)
+      .then(res => res.json())
+      .then(data => {
+        setIdea(data.idea);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [ticker]);
+
+  if (loading) return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">GENERATING QUANT THESIS...</div>;
+  if (!idea) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2">
+      <div className="flex justify-between items-center mb-4">
+        <span className={`px-2 py-1 text-xs font-bold font-mono rounded border ${idea.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-green-500/20 text-green-400 border-green-500/50'}`}>
+          {idea.play_type}
+        </span>
+        <span className="text-sm font-mono text-gray-400">EDGE: <span className="text-white font-bold">{idea.confidence}%</span></span>
+      </div>
+      
+      <div className={`text-center py-4 mb-4 rounded border font-mono font-bold text-lg tracking-widest ${idea.direction === 'CALLS' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+        {idea.strike} {idea.direction} ({idea.expiration})
+      </div>
+
+      <div className="text-sm text-gray-300 font-mono leading-relaxed">
+        <p className="mb-2"><ShieldAlert className="w-4 h-4 inline mr-1 text-purple-400"/> **INSTITUTIONAL READ:**</p>
+        <p>{idea.thesis}</p>
+      </div>
+    </div>
+  );
+}
 
 function GexSurface({ ticker }: { ticker: string }) {
   const [gexData, setGexData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fallback visualizer data since backend is mocked for GEX currently
   const fallbackData = [
     { strike: 400, gex: -1500 }, { strike: 405, gex: -800 }, 
     { strike: 410, gex: -200 }, { strike: 415, gex: 1200 }, 
@@ -161,27 +317,22 @@ function OptionsFlow({ ticker }: { ticker: string }) {
   const [tape, setTape] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fallbackData = [
-    { ticker: ticker, time: "LIVE", premium: "$1.2M", size: "1,500" },
-    { ticker: ticker, time: "LIVE", premium: "$850K", size: "800" },
-    { ticker: ticker, time: "LIVE", premium: "$420K", size: "450" }
-  ];
-
   useEffect(() => {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/flow?ticker=${ticker}`)
       .then((res) => res.json())
       .then((data) => {
-        setTape(data.tape?.length ? data.tape : fallbackData);
+        setTape(data.tape || []);
         setLoading(false);
       })
       .catch(() => {
-        setTape(fallbackData); 
+        setTape([]); 
         setLoading(false);
       });
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
+  if (tape.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO FLOW DETECTED.</div>;
 
   return (
     <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
@@ -205,27 +356,22 @@ function MacroDocket({ ticker }: { ticker: string }) {
   const [news, setNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fallbackData = [
-    { title: `Institutional Volume Spikes on ${ticker}`, source: "Quant Wire", url: "#" },
-    { title: "Market Makers Adjust Hedging Parameters", source: "Financial Desk", url: "#" },
-    { title: "Macro Data Indicates Shifting Volatility", source: "Terminal Analytics", url: "#" }
-  ];
-
   useEffect(() => {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/news?ticker=${ticker}`)
       .then((res) => res.json())
       .then((data) => {
-        setNews(data.news?.length ? data.news : fallbackData);
+        setNews(data.news || []);
         setLoading(false);
       })
       .catch(() => {
-        setNews(fallbackData); 
+        setNews([]); 
         setLoading(false);
       });
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
+  if (news.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO NEWS FOUND.</div>;
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
@@ -234,56 +380,6 @@ function MacroDocket({ ticker }: { ticker: string }) {
           <h3 className="text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
           <p className="text-xs text-gray-500 font-mono">{item.source}</p>
         </a>
-      ))}
-    </div>
-  );
-}
-
-function SMCRadar({ ticker }: { ticker: string }) {
-  const [signals, setSignals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fallbackData = [
-    { ticker: ticker, type: "SWING", dir: "CALLS", entry: "AUTO", target: "CALC", conf: 82 },
-    { ticker: "QQQ", type: "DAY", dir: "PUTS", entry: "AUTO", target: "CALC", conf: 76 }
-  ];
-
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${ENGINE_URL}/api/signals?type=swings`)
-      .then((res) => res.json())
-      .then((data) => {
-        setSignals(data.signals?.length ? data.signals : fallbackData);
-        setLoading(false);
-      })
-      .catch(() => {
-        setSignals(fallbackData); 
-        setLoading(false);
-      });
-  }, [ticker]); 
-
-  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">CALCULATING EDGE...</div>;
-
-  return (
-    <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
-      {signals.map((sig, i) => (
-        <div key={i} className="flex flex-col p-3 bg-[#1a1a1a] border border-[#333] rounded shrink-0 transition-all hover:border-[#555]">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-white font-bold text-lg">{sig.ticker}</span>
-            <span className={`px-2 py-1 text-xs font-bold rounded ${sig.dir === 'PUTS' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-              {sig.type} {sig.dir}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm font-mono text-gray-400">
-            <div className="flex flex-col">
-              <span>Entry: <span className="text-white">{sig.entry}</span></span>
-              <span>Target: <span className="text-green-400">{sig.target}</span></span>
-            </div>
-            <div className="flex flex-col items-end justify-end">
-              <span>Edge: <span className="text-white">{sig.conf}%</span></span>
-            </div>
-          </div>
-        </div>
       ))}
     </div>
   );
