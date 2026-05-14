@@ -5,9 +5,27 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLin
 
 const ENGINE_URL = "https://apex-engine-production.up.railway.app"; 
 
+// 🛡️ THE FIX: Re-using the markdown parser from the sports page
+const formatMarkdown = (text: string) => {
+  if (!text) return null;
+  return text.split('\n').map((line, i) => {
+    const parts = line.split(/(\*\*.*?\*\*)/g);
+    return (
+      <p key={i} className={`mb-2 ${line.startsWith('-') ? 'pl-4 border-l-2 border-[#333] ml-2' : ''}`}>
+        {parts.map((part, j) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={j} className="text-white">{part.slice(2, -2)}</strong>;
+          }
+          return part;
+        })}
+      </p>
+    );
+  });
+};
+
 export default function Terminal() {
   const [searchInput, setSearchInput] = useState("");
-  const [activeTicker, setActiveTicker] = useState<string | null>(null); // Null means Global View
+  const [activeTicker, setActiveTicker] = useState<string | null>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +84,11 @@ function GlobalDashboard() {
   const [loadingPlays, setLoadingPlays] = useState(true);
 
   useEffect(() => {
-    // Fetch Macro News
     fetch(`${ENGINE_URL}/api/news`)
       .then(res => res.json())
       .then(data => setNews(data.news || []))
       .catch(() => setNews([]));
 
-    // Fetch Global Trade Setups from Claude 4.7
     setLoadingPlays(true);
     fetch(`${ENGINE_URL}/api/equities/global_plays`)
       .then(res => res.json())
@@ -85,7 +101,6 @@ function GlobalDashboard() {
 
   return (
     <main className="flex-1 p-4 grid grid-cols-12 gap-4 min-h-0">
-      {/* LEFT COL: MACRO NEWS */}
       <section className="col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Globe className="w-4 h-4 text-blue-400" />
@@ -101,7 +116,6 @@ function GlobalDashboard() {
         </div>
       </section>
 
-      {/* RIGHT COL: AI ACTIVE PLAYS */}
       <section className="col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden">
         <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -145,11 +159,6 @@ function GlobalDashboard() {
                   </div>
                 </div>
               ))}
-              <div className="mt-4 border-t border-[#333] pt-4">
-                  <p className="text-xs text-gray-500 font-mono italic">
-                    ⚠️ RISK DISCLOSURE: This data is generated autonomously via algorithmic scans. It is NOT financial advice. Options carry extreme variance. Tail strictly at your own risk.
-                  </p>
-              </div>
             </div>
           )}
         </div>
@@ -165,7 +174,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
   return (
     <main className="flex-1 p-4 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
       
-      {/* MODULE 1: GEX SURFACE (Spans 8 columns, Top Row) */}
       <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <BarChart2 className="w-4 h-4 text-purple-400" />
@@ -176,7 +184,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 2: OPTIONS FLOW TAPE (Spans 4 columns, Top Row) */}
       <section className="col-span-4 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Layers className="w-4 h-4 text-cyan-400" />
@@ -187,7 +194,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 3: AI TRADE THESIS (Spans 5 columns, Bottom Row) */}
       <section className="col-span-5 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
         <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -200,7 +206,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 4: HEATMAP (Spans 4 columns, Bottom Row) */}
       <section className="col-span-4 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
            <Activity className="w-4 h-4 text-orange-400" />
@@ -211,7 +216,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 5: TICKER NEWS (Spans 3 columns, Bottom Row) */}
       <section className="col-span-3 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Newspaper className="w-4 h-4 text-yellow-400" />
@@ -262,8 +266,8 @@ function TickerAiThesis({ ticker }: { ticker: string }) {
       </div>
 
       <div className="text-sm text-gray-300 font-mono leading-relaxed">
-        <p className="mb-2"><ShieldAlert className="w-4 h-4 inline mr-1 text-purple-400"/> **INSTITUTIONAL READ:**</p>
-        <p>{idea.thesis}</p>
+        <div className="mb-2"><ShieldAlert className="w-4 h-4 inline mr-1 text-purple-400"/> <strong className="text-white">INSTITUTIONAL READ:</strong></div>
+        {formatMarkdown(idea.thesis)}
       </div>
     </div>
   );
@@ -273,35 +277,26 @@ function GexSurface({ ticker }: { ticker: string }) {
   const [gexData, setGexData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fallback visualizer data since backend is mocked for GEX currently
-  const fallbackData = [
-    { strike: 400, gex: -1500 }, { strike: 405, gex: -800 }, 
-    { strike: 410, gex: -200 }, { strike: 415, gex: 1200 }, 
-    { strike: 420, gex: 3500 }, { strike: 425, gex: 1800 }
-  ];
-
   useEffect(() => {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/gex?ticker=${ticker}`)
       .then((res) => res.json())
       .then((data) => {
-        setGexData(data.data?.length ? data.data : fallbackData);
+        setGexData(data.data || []);
         setLoading(false);
       })
-      .catch(() => {
-        setGexData(fallbackData);
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">CALCULATING GAMMA WALLS...</div>;
+  if (gexData.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO GEX DATA FOUND.</div>;
 
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={gexData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <XAxis dataKey="strike" stroke="#555" tick={{ fill: '#888', fontSize: 12, fontFamily: 'monospace' }} />
         <YAxis stroke="#555" tick={{ fill: '#888', fontSize: 12, fontFamily: 'monospace' }} />
-        <Tooltip cursor={{ fill: '#222' }} contentStyle={{ backgroundColor: '#111', borderColor: '#333', color: '#fff', fontFamily: 'monospace', fontSize: '12px' }} formatter={(value: any) => [`${value}M`, 'Gamma']} />
+        <Tooltip cursor={{ fill: '#222' }} contentStyle={{ backgroundColor: '#111', borderColor: '#333', color: '#fff', fontFamily: 'monospace', fontSize: '12px' }} formatter={(value: any) => [`${value}`, 'Net Gamma']} />
         <ReferenceLine y={0} stroke="#444" />
         <Bar dataKey="gex" radius={[2, 2, 0, 0]}>
           {gexData.map((entry, index) => (
@@ -325,10 +320,7 @@ function OptionsFlow({ ticker }: { ticker: string }) {
         setTape(data.tape || []);
         setLoading(false);
       })
-      .catch(() => {
-        setTape([]); 
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
@@ -364,10 +356,7 @@ function MacroDocket({ ticker }: { ticker: string }) {
         setNews(data.news || []);
         setLoading(false);
       })
-      .catch(() => {
-        setNews([]); 
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
@@ -389,54 +378,44 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
   const [heatmapData, setHeatmapData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fallbackData = [
-    { strike: 430, exp1: 80, exp2: 40, exp3: 20 },
-    { strike: 425, exp1: 150, exp2: 90, exp3: 45 },
-    { strike: 420, exp1: 300, exp2: 210, exp3: 110 },
-    { strike: 415, exp1: 800, exp2: 450, exp3: 200 }, 
-    { strike: 410, exp1: 250, exp2: 180, exp3: 90 },
-    { strike: 405, exp1: 100, exp2: 60, exp3: 30 },
-  ];
-
   useEffect(() => {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/heatmap?ticker=${ticker}`)
       .then((res) => res.json())
       .then((data) => {
-        setHeatmapData(data.data?.length ? data.data : fallbackData);
+        setHeatmapData(data.data || []);
         setLoading(false);
       })
-      .catch(() => {
-        setHeatmapData(fallbackData); 
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [ticker]);
 
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RENDERING MATRIX...</div>;
+  if (heatmapData.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO MATRIX DATA FOUND.</div>;
 
   const getCellColor = (vol: number) => {
     if (vol > 500) return 'bg-cyan-400 text-black font-bold shadow-[0_0_8px_rgba(0,255,255,0.5)] border border-cyan-300';
     if (vol > 200) return 'bg-cyan-500/60 text-white border border-cyan-500/50';
     if (vol > 100) return 'bg-cyan-500/30 text-gray-300 border border-[#333]';
-    return 'bg-[#1a1a1a] text-gray-500 border border-[#333]';
+    if (vol > 0) return 'bg-[#1a1a1a] text-gray-500 border border-[#333]';
+    return 'text-gray-700';
   };
 
   return (
     <div className="flex flex-col h-full overflow-hidden font-mono text-xs">
       <div className="grid grid-cols-4 gap-1 mb-2 text-gray-400 font-bold text-center border-b border-[#333] pb-2 shrink-0">
         <div>STRIKE</div>
-        <div>0 DTE</div>
-        <div>7 DTE</div>
-        <div>30 DTE</div>
+        <div>NEAR TERM</div>
+        <div>MID TERM</div>
+        <div>FAR TERM</div>
       </div>
       
       <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
         {heatmapData.map((row, i) => (
           <div key={i} className="grid grid-cols-4 gap-1 text-center">
             <div className="flex items-center justify-center bg-[#222] border border-[#333] rounded py-2 font-bold text-gray-200">${row.strike}</div>
-            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp1)}`}>{row.exp1}</div>
-            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp2)}`}>{row.exp2}</div>
-            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp3)}`}>{row.exp3}</div>
+            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp1)}`}>{row.exp1 > 0 ? row.exp1 : '-'}</div>
+            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp2)}`}>{row.exp2 > 0 ? row.exp2 : '-'}</div>
+            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp3)}`}>{row.exp3 > 0 ? row.exp3 : '-'}</div>
           </div>
         ))}
       </div>
