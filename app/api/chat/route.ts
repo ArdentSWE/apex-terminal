@@ -15,9 +15,9 @@ export async function POST(req: Request) {
     You are sharp, highly analytical, and speak like a Wall Street quant. You do not mention Anthropic or Claude. 
     Your primary goal is to help users analyze options flow, GEX, and sports arbitrage models.`;
 
-    // Call Claude 3 Opus
+    // Connect to the current flagship Anthropic model
     const msg = await anthropic.messages.create({
-      model: "claude-3-opus-20240229",
+      model: "claude-opus-4-7",
       max_tokens: 1000,
       system: systemPrompt,
       messages: messages,
