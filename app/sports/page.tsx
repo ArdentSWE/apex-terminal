@@ -4,8 +4,26 @@ import { Trophy, Zap, Crosshair, Terminal, ShieldAlert, Cpu, Activity } from 'lu
 
 const ENGINE_URL = "https://apex-engine-production.up.railway.app";
 
+// Helper function to render Discord-style markdown in React
+const formatMarkdown = (text: string) => {
+  if (!text) return null;
+  return text.split('\n').map((line, i) => {
+    // Bold text parsing
+    const parts = line.split(/(\*\*.*?\*\*)/g);
+    return (
+      <p key={i} className={`mb-2 ${line.startsWith('-') ? 'pl-4 border-l-2 border-[#333] ml-2' : ''}`}>
+        {parts.map((part, j) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={j} className="text-white">{part.slice(2, -2)}</strong>;
+          }
+          return part;
+        })}
+      </p>
+    );
+  });
+};
+
 export default function SportsMatrix() {
-  // --- FORM STATE ---
   const [mode, setMode] = useState<"PREDICTOR" | "PARLAY">("PREDICTOR");
   const [sport, setSport] = useState("NBA");
   const [team1, setTeam1] = useState("");
@@ -14,7 +32,6 @@ export default function SportsMatrix() {
   const [market, setMarket] = useState("Moneyline, Spread, Total");
   const [legs, setLegs] = useState("3");
 
-  // --- OUTPUT STATE ---
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
@@ -22,8 +39,8 @@ export default function SportsMatrix() {
     if (mode === "PREDICTOR") {
       return ["Moneyline, Spread, Total", "Moneyline Only", "Spreads Only", "Over/Under Totals"];
     } else {
-      if (sport === "NBA") return ["PTS, REB, AST", "Threes & Steals", "First Quarter Props"];
-      if (sport === "NFL") return ["Pass Yds, Rush Yds, Rec", "Anytime TD Scorer"];
+      if (sport === "NBA") return ["PTS, REB, AST", "Threes & Steals", "First Quarter Props", "Any Player Prop"];
+      if (sport === "NFL") return ["Pass Yds, Rush Yds, Rec", "Anytime TD Scorer", "Any Player Prop"];
       if (sport === "NHL") return ["Shots on Goal (SOG), Points", "Assists & Powerplay"];
       if (sport === "MLB") return ["Hits, Runs, RBIs", "Strikeouts, Total Bases"];
       if (sport === "SOC") return ["Shots on Target, Cards", "Goalscorers"];
@@ -52,7 +69,7 @@ export default function SportsMatrix() {
         matchup: `${team1.toUpperCase()} vs ${team2.toUpperCase()}`,
         date: date,
         market: market,
-        ai_text: data.result_text // Instantly grabs the actual Anthropic 4.7 string
+        ai_text: data.result_text 
       });
       setLoading(false);
 
@@ -60,10 +77,7 @@ export default function SportsMatrix() {
       console.error(err);
       setResult({
         type: mode,
-        sport: sport,
         matchup: `${team1.toUpperCase()} vs ${team2.toUpperCase()}`,
-        date: date,
-        market: market,
         ai_text: "❌ Neural link disrupted. Could not reach the Apex Engine."
       });
       setLoading(false);
@@ -83,7 +97,7 @@ export default function SportsMatrix() {
         </div>
         <div className="font-mono text-sm text-gray-400 flex items-center gap-2">
           <Cpu className="w-4 h-4 text-purple-400" />
-          POWERED BY: <span className="text-purple-400 font-bold">APEX QUANT ENGINE</span>
+          POWERED BY: <span className="text-purple-400 font-bold">APEX OMNI-AGENT</span>
         </div>
       </header>
 
@@ -152,7 +166,7 @@ export default function SportsMatrix() {
               )}
 
               <button type="submit" disabled={loading} className="mt-4 w-full bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded uppercase tracking-widest transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
-                {loading ? <span className="animate-pulse">BOOTING ENGINE...</span> : <>ENGAGE APEX NEURAL LINK <Activity className="w-4 h-4" /></>}
+                {loading ? <span className="animate-pulse">RUNNING L20 BACKTESTS...</span> : <>ENGAGE APEX OMNI-AGENT <Activity className="w-4 h-4" /></>}
               </button>
 
             </form>
@@ -179,7 +193,8 @@ export default function SportsMatrix() {
             {loading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-green-500 font-mono text-sm">
                 <Activity className="w-12 h-12 mb-4 animate-bounce" />
-                <p className="animate-pulse">AGGREGATING L20 DATA & SCRAPING LIVE ODDS...</p>
+                <p className="animate-pulse mb-1">SCRAPING LIVE VEGAS ODDS...</p>
+                <p className="animate-pulse text-xs text-green-700">Validating hit rates via Omni-Agent...</p>
               </div>
             )}
 
@@ -199,9 +214,9 @@ export default function SportsMatrix() {
                   </div>
                 </div>
 
-                {/* THE REAL ANTHROPIC TEXT */}
-                <div className="font-mono text-sm text-gray-300 leading-relaxed mb-6 whitespace-pre-wrap">
-                  {result.ai_text}
+                {/* THE PARSED ANTHROPIC TEXT */}
+                <div className="font-mono text-sm text-gray-300 leading-relaxed mb-6">
+                  {formatMarkdown(result.ai_text)}
                 </div>
 
                 <div className="mt-8 border-t border-[#333] pt-4">
