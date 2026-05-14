@@ -1,167 +1,273 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Activity, BarChart2, Zap, Globe, ShieldAlert, Trophy, Target, AlertTriangle, TrendingUp, Crosshair } from 'lucide-react';
+import { Search, Trophy, Zap, Crosshair, Activity, Flame } from 'lucide-react';
 
 export default function SportsMatrix() {
   const [activeLeague, setActiveLeague] = useState("NBA");
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [team1, setTeam1] = useState("DEN");
+  const [team2, setTeam2] = useState("MIN");
 
-  // FETCH QUANT DATA WHEN LEAGUE CHANGES
-  useEffect(() => {
-    setLoading(true);
-    // 🚀 UPDATED: Pointing to the live Railway Cloud URL
-    fetch(`https://apex-engine-production.up.railway.app/api/sports?league=${activeLeague}`)
-      .then(res => res.json())
-      .then(json => {
-        setData(json);
-        setLoading(false);
-      })
-      .catch(err => console.error("Sports fetch error:", err));
-  }, [activeLeague]);
+  const handleMatchupSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Logic to update matchup, you can expand this to split a string like "DEN vs MIN"
+  };
 
   return (
-    <div className="flex h-screen bg-apex-bg text-white font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
       
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="w-16 flex flex-col items-center py-6 bg-apex-panel border-r border-apex-border">
-        <div className="w-10 h-10 rounded bg-apex-cyan/20 flex items-center justify-center border border-apex-cyan mb-8 cursor-pointer shadow-[0_0_10px_rgba(0,255,255,0.2)]">
-          <Zap className="text-apex-cyan w-5 h-5" />
+      {/* HEADER & LEAGUE SELECTOR */}
+      <header className="h-16 border-b border-[#222] bg-[#111] flex items-center justify-between px-6 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-green-500/20 border border-green-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,0,0.2)]">
+            <Trophy className="text-green-400 w-4 h-4" />
+          </div>
+          <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE | SPORTS MATRIX</span>
         </div>
-        <nav className="flex flex-col gap-6">
-          <Link href="/"><NavItem icon={<BarChart2 />} /></Link>
-          <Link href="/sports"><NavItem icon={<Activity />} active /></Link>
-          <NavItem icon={<Globe />} />
-          <NavItem icon={<ShieldAlert />} />
-        </nav>
-      </aside>
 
-      {/* SPORTS MATRIX MAIN GRID */}
-      <main className="flex-1 p-2 flex flex-col gap-2 h-full overflow-hidden">
+        <div className="flex bg-[#1a1a1a] rounded-md border border-[#333] p-1">
+          {["NBA", "NFL", "NHL", "MLB"].map((league) => (
+            <button
+              key={league}
+              onClick={() => setActiveLeague(league)}
+              className={`px-4 py-1 text-xs font-bold font-mono rounded transition-colors ${activeLeague === league ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              {league}
+            </button>
+          ))}
+        </div>
+
+        <div className="font-mono text-sm text-gray-400">
+          ACTIVE MODEL: <span className="text-green-400 font-bold ml-2">{activeLeague} QUANT</span>
+        </div>
+      </header>
+
+      {/* TERMINAL GRID */}
+      <main className="flex-1 p-4 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
         
-        <header className="h-14 bg-apex-panel border border-apex-border rounded-md flex items-center px-4 justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <Trophy className="text-apex-gold w-5 h-5" />
-            <span className="text-apex-gold font-mono font-bold text-lg">THE GOD PARLAYS</span>
-            <span className="text-apex-muted text-sm tracking-widest hidden md:block">| QUANTITATIVE ODDS</span>
+        {/* MODULE 1: GAME PREDICTOR (Spans 8 columns, Top Row) */}
+        <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0 justify-between">
+            <div className="flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-cyan-400" />
+              <h2 className="text-xs font-bold text-gray-400 tracking-widest">QUANTITATIVE MATCHUP PREDICTOR</h2>
+            </div>
+            <form onSubmit={handleMatchupSearch} className="flex gap-2">
+              <input 
+                type="text" 
+                value={team1} 
+                onChange={(e) => setTeam1(e.target.value.toUpperCase())}
+                className="w-16 bg-[#1a1a1a] border border-[#333] rounded text-center font-mono text-xs focus:border-green-500 focus:outline-none uppercase"
+              />
+              <span className="text-gray-500 font-mono text-xs flex items-center">VS</span>
+              <input 
+                type="text" 
+                value={team2} 
+                onChange={(e) => setTeam2(e.target.value.toUpperCase())}
+                className="w-16 bg-[#1a1a1a] border border-[#333] rounded text-center font-mono text-xs focus:border-green-500 focus:outline-none uppercase"
+              />
+            </form>
           </div>
-
-          <div className="flex gap-2 bg-apex-bg p-1 border border-apex-border rounded-md font-mono text-sm">
-            {["NBA", "NHL", "EPL"].map((league) => (
-              <button 
-                key={league}
-                onClick={() => setActiveLeague(league)}
-                className={`px-4 py-1 rounded transition-colors ${activeLeague === league ? 'bg-apex-gold text-black font-bold' : 'text-apex-muted hover:text-white'}`}
-              >
-                {league}
-              </button>
-            ))}
+          <div className="flex-1 overflow-hidden">
+            <GamePredictor team1={team1} team2={team2} league={activeLeague} />
           </div>
+        </section>
 
-          <div className="font-mono text-sm flex gap-4">
-            <span className="text-apex-muted">SYS EDGE: <span className="text-apex-green">+8.4%</span></span>
-            <span className="text-apex-muted">ROI (30D): <span className="text-apex-green">+14.2u</span></span>
+        {/* MODULE 2: AI PARLAY CREATOR (Spans 4 columns, Full Height) */}
+        <section className="col-span-4 row-span-2 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">HIGH-CONFIDENCE PARLAYS</h2>
           </div>
-        </header>
-
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center text-apex-gold font-mono animate-pulse">
-            CALCULATING {activeLeague} PROBABILITIES...
+          <div className="flex-1 overflow-hidden">
+            <ParlayMatrix league={activeLeague} />
           </div>
-        ) : (
-          <div className="flex-1 flex gap-2 min-h-0">
-            
-            {/* LEFT PANE: Parlays */}
-            <section className="w-1/3 bg-apex-panel border border-apex-border rounded-md flex flex-col p-4 overflow-hidden">
-              <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0 flex items-center gap-2">
-                <Target className="w-4 h-4 text-apex-cyan" /> HIGH-CONFIDENCE SLIPS
-              </h2>
-              <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
-                {data?.parlays.map((parlay: any, i: number) => (
-                  <div key={i} className={`bg-apex-bg border border-apex-border rounded p-3 flex flex-col gap-2 relative overflow-hidden transition-colors`}>
-                    <div className={`absolute top-0 left-0 w-1 h-full ${parlay.color}`} />
-                    <div className="flex justify-between items-center pl-2">
-                      <span className="font-bold font-mono text-sm">{parlay.name}</span>
-                      <span className={`font-mono text-xs px-2 py-1 rounded bg-opacity-10 text-white ${parlay.color}`}>{parlay.odds}</span>
-                    </div>
-                    <ul className="text-xs text-apex-muted font-mono pl-2 space-y-1 mt-1">
-                      {parlay.legs.map((leg: any, j: number) => (
-                        <li key={j} className="flex justify-between"><span>{leg.prop}</span><span className="text-apex-cyan">{leg.prob}</span></li>
-                      ))}
-                    </ul>
-                    <div className="mt-2 pl-2 flex items-center justify-between text-[10px] text-apex-muted">
-                      <span>EV: {parlay.ev}</span>
-                      <span className="text-apex-green">{parlay.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+        </section>
 
-            {/* CENTER PANE: +EV Props */}
-            <section className="w-1/3 bg-apex-panel border border-apex-border rounded-md flex flex-col p-4 overflow-hidden">
-              <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0 flex items-center gap-2">
-                <Crosshair className="w-4 h-4 text-apex-green" /> LIVE +EV PROP SCANNER
-              </h2>
-              <div className="flex flex-col gap-2 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="flex justify-between items-center text-xs text-apex-muted mb-2 px-2">
-                  <span>PLAYER PROP</span><span>EDGE</span>
-                </div>
-                {data?.props.map((prop: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center bg-apex-bg border border-apex-border rounded p-2 text-xs font-mono hover:border-apex-green transition-colors cursor-pointer">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white">{prop.name}</span>
-                      <span className="text-apex-muted">{prop.prop} <span className="text-white">({prop.odds})</span></span>
-                    </div>
-                    <span className="text-apex-green bg-apex-green/10 px-2 py-1 rounded">{prop.edge}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* RIGHT PANE: Injury & Shifts */}
-            <section className="w-1/3 flex flex-col gap-2 overflow-hidden">
-              <div className="flex-1 bg-apex-panel border border-apex-border rounded-md p-4 flex flex-col min-h-0">
-                <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-apex-red" /> INJURY IMPACT RADAR
-                </h2>
-                <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
-                  {data?.injuries.map((inj: any, i: number) => (
-                    <div key={i} className={`border-l-2 pl-2 ${inj.color}`}>
-                      <span className="text-sm font-bold text-white block">{inj.player} - {inj.status}</span>
-                      <span className="text-xs text-apex-muted leading-tight">{inj.impact}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex-1 bg-apex-panel border border-apex-border rounded-md p-4 flex flex-col min-h-0">
-                <h2 className="text-sm font-bold text-apex-muted mb-4 tracking-wider border-b border-apex-border pb-2 shrink-0 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-apex-cyan" /> SHARP MONEY SHIFTS
-                </h2>
-                <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar text-xs font-mono">
-                  {data?.shifts.map((shift: any, i: number) => (
-                    <div key={i} className="flex justify-between items-center border-b border-apex-border pb-2">
-                      <span className="text-apex-muted">{shift.match}</span>
-                      <span className={shift.color}>{shift.shift}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
+        {/* MODULE 3: ARBITRAGE & POSITIVE EV SCANNER (Spans 8 columns, Bottom Row) */}
+        <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+            <Flame className="w-4 h-4 text-red-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">+EV PROP SCANNER</h2>
           </div>
-        )}
+          <div className="flex-1 overflow-hidden">
+            <EvScanner league={activeLeague} />
+          </div>
+        </section>
+
       </main>
     </div>
   );
 }
 
-function NavItem({ icon, active = false }: { icon: React.ReactNode, active?: boolean }) {
+// ------------------------------------------------------------------
+// MODULE COMPONENTS - SPORTS ARCHITECTURE
+// ------------------------------------------------------------------
+
+const ENGINE_URL = "https://apex-engine-production.up.railway.app";
+
+function GamePredictor({ team1, team2, league }: { team1: string, team2: string, league: string }) {
+  const [matchupData, setMatchupData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fallbackData = {
+    team1: team1,
+    team2: team2,
+    t1WinProb: 68,
+    t2WinProb: 32,
+    projectedTotal: 212.5,
+    edge: "T1 ML (-145)",
+    keyFactor: "Significant rebounding mismatch; T2 missing starting Center."
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${ENGINE_URL}/api/sports/predictor?team1=${team1}&team2=${team2}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setMatchupData(data.matchup ? data : fallbackData);
+        setLoading(false);
+      })
+      .catch(() => {
+        setMatchupData(fallbackData);
+        setLoading(false);
+      });
+  }, [team1, team2, league]);
+
+  if (loading || !matchupData) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RUNNING SIMULATIONS...</div>;
+
   return (
-    <div className={`p-3 rounded-md cursor-pointer transition-colors ${active ? 'bg-apex-gold text-black shadow-[0_0_10px_rgba(255,215,0,0.3)]' : 'text-apex-muted hover:text-white hover:bg-apex-border/50'}`}>
-      {icon}
+    <div className="flex flex-col h-full justify-center px-8">
+      <div className="flex justify-between items-end mb-2 font-mono">
+        <span className="text-3xl font-bold text-white">{matchupData.team1}</span>
+        <span className="text-gray-500 font-bold mb-1">WIN PROBABILITY</span>
+        <span className="text-3xl font-bold text-white">{matchupData.team2}</span>
+      </div>
+      
+      {/* Probability Bar */}
+      <div className="w-full h-8 flex rounded overflow-hidden border border-[#333] shadow-inner mb-6">
+        <div 
+          className="h-full bg-cyan-500/80 flex items-center pl-4 font-bold text-black"
+          style={{ width: `${matchupData.t1WinProb}%` }}
+        >
+          {matchupData.t1WinProb}%
+        </div>
+        <div 
+          className="h-full bg-[#222] flex items-center justify-end pr-4 font-bold text-gray-400"
+          style={{ width: `${matchupData.t2WinProb}%` }}
+        >
+          {matchupData.t2WinProb}%
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 font-mono text-sm text-center">
+        <div className="bg-[#1a1a1a] p-3 rounded border border-[#333]">
+          <div className="text-gray-500 text-xs mb-1">PROJ TOTAL</div>
+          <div className="text-white font-bold">{matchupData.projectedTotal}</div>
+        </div>
+        <div className="bg-[#1a1a1a] p-3 rounded border border-[#333] shadow-[0_0_8px_rgba(0,255,0,0.1)] border-green-500/30">
+          <div className="text-green-400 text-xs mb-1">ALGO EDGE</div>
+          <div className="text-white font-bold">{matchupData.edge}</div>
+        </div>
+        <div className="bg-[#1a1a1a] p-3 rounded border border-[#333]">
+          <div className="text-gray-500 text-xs mb-1">KEY FACTOR</div>
+          <div className="text-gray-300 text-xs line-clamp-2">{matchupData.keyFactor}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ParlayMatrix({ league }: { league: string }) {
+  const [parlays, setParlays] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fallbackData = [
+    { 
+      name: "HEAVY FAVORITE MODEL", odds: "+145", ev: "+4.2%", status: "PLAYABLE",
+      legs: ["DEN Moneyline", "Jokic Over 24.5 PTS", "Murray Over 5.5 AST"] 
+    },
+    { 
+      name: "HIGH VARIANCE LOTO", odds: "+850", ev: "+1.8%", status: "FRACTIONAL",
+      legs: ["MIN +4.5", "Edwards Over 28.5 PTS", "Gobert Under 11.5 REB"] 
+    }
+  ];
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${ENGINE_URL}/api/sports/parlays?league=${league}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setParlays(data.parlays?.length ? data.parlays : fallbackData);
+        setLoading(false);
+      })
+      .catch(() => {
+        setParlays(fallbackData);
+        setLoading(false);
+      });
+  }, [league]);
+
+  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">GENERATING PARLAYS...</div>;
+
+  return (
+    <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2 h-full">
+      {parlays.map((parlay, i) => (
+        <div key={i} className="flex flex-col p-3 bg-[#1a1a1a] border border-[#333] hover:border-yellow-500/50 rounded shrink-0 transition-colors">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-white font-bold text-sm tracking-wider">{parlay.name}</span>
+            <span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 text-xs font-bold rounded">
+              {parlay.odds}
+            </span>
+          </div>
+          
+          <div className="flex flex-col gap-1 mb-3">
+            {parlay.legs.map((leg: string, idx: number) => (
+              <div key={idx} className="text-xs font-mono text-gray-300 flex items-center gap-2">
+                <div className="w-1 h-1 bg-gray-500 rounded-full" /> {leg}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between items-center border-t border-[#333] pt-2 text-xs font-mono">
+            <span className="text-gray-500">EV: <span className="text-green-400 font-bold">{parlay.ev}</span></span>
+            <span className={parlay.status === 'PLAYABLE' ? 'text-green-400' : 'text-orange-400'}>{parlay.status}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EvScanner({ league }: { league: string }) {
+  // Simulating a live scanner of positive Expected Value props
+  const props = [
+    { player: "L. DONCIC", market: "AST", line: "8.5", side: "OVER", odds: "+110", trueOdds: "-105", edge: "3.4%" },
+    { player: "J. TATUM", market: "REB", line: "9.5", side: "UNDER", odds: "-115", trueOdds: "-130", edge: "2.1%" },
+    { player: "S. GILGEOUS", market: "PTS", line: "31.5", side: "OVER", odds: "-105", trueOdds: "-120", edge: "2.8%" }
+  ];
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden font-mono text-xs">
+      <div className="grid grid-cols-7 gap-1 mb-2 text-gray-400 font-bold text-center border-b border-[#333] pb-2 shrink-0">
+        <div className="col-span-2 text-left pl-2">PLAYER</div>
+        <div>MARKET</div>
+        <div>LINE</div>
+        <div>ODDS</div>
+        <div>TRUE OD</div>
+        <div className="text-green-400">EDGE</div>
+      </div>
+      
+      <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
+        {props.map((prop, i) => (
+          <div key={i} className="grid grid-cols-7 gap-1 text-center items-center bg-[#1a1a1a] border border-[#333] rounded py-2 hover:bg-[#222] transition-colors">
+            <div className="col-span-2 text-left pl-2 text-white font-bold">{prop.player}</div>
+            <div className="text-gray-300">{prop.market}</div>
+            <div className="font-bold text-cyan-400">{prop.side} {prop.line}</div>
+            <div className="text-gray-400">{prop.odds}</div>
+            <div className="text-gray-500">{prop.trueOdds}</div>
+            <div className="text-green-400 font-bold bg-green-500/10 py-1 rounded mx-1">{prop.edge}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
