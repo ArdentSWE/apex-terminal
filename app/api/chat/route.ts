@@ -23,8 +23,11 @@ export async function POST(req: Request) {
       messages: messages,
     });
 
-    // Extract the text response and send it back to your frontend
-    return NextResponse.json({ reply: msg.content[0].text });
+    // Extract the text response safely to satisfy TypeScript strict mode
+    const responseBlock = msg.content[0];
+    const replyText = responseBlock.type === 'text' ? responseBlock.text : "Neural link returned non-text data.";
+    
+    return NextResponse.json({ reply: replyText });
     
   } catch (error) {
     console.error("Ace AI Error:", error);
