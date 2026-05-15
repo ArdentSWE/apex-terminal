@@ -11,74 +11,63 @@ export default function LiveChart({ ticker }: { ticker: string }) {
     if (!chartContainerRef.current) return;
     setLoading(true);
 
-    // Initialize the TradingView Chart with custom Matrix aesthetics
     const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#8b949e',
-      },
-      grid: {
-        vertLines: { color: 'rgba(255, 255, 255, 0.05)', style: 1 },
-        horzLines: { color: 'rgba(255, 255, 255, 0.05)', style: 1 },
-      },
-      timeScale: {
-        timeVisible: true,
-        secondsVisible: false,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-      },
-      rightPriceScale: {
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-      },
-      crosshair: {
-        mode: 1,
-        vertLine: { color: '#cyan-500', labelBackgroundColor: '#0a0a0a' },
-        horzLine: { color: '#cyan-500', labelBackgroundColor: '#0a0a0a' },
-      }
+      layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: '#8b949e' },
+      grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
+      timeScale: { timeVisible: true, borderColor: 'rgba(255,255,255,0.1)' },
+      rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' },
+      crosshair: { mode: 1, vertLine: { color: '#06b6d4' }, horzLine: { color: '#06b6d4' } }
     });
 
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#22d3ee', // Cyan-400
-      downColor: '#f43f5e', // Rose-500
-      borderVisible: false,
-      wickUpColor: '#22d3ee',
-      wickDownColor: '#f43f5e',
+    const series = chart.addSeries(CandlestickSeries, {
+      upColor: '#22d3ee', downColor: '#f43f5e', borderVisible: false, wickUpColor: '#22d3ee', wickDownColor: '#f43f5e',
     });
 
-    // Fetch the live chart data from your engine
+    // 1. ROBUST RESIZE OBSERVER (Crucial for react-grid-layout dragging)
+    const resizeObserver = new ResizeObserver(entries => {
+      if (entries.length === 0 || entries[0].target !== chartContainerRef.current) return;
+      const newRect = entries[0].contentRect;
+      chart.applyOptions({ width: newRect.width, height: newRect.height });
+    });
+    resizeObserver.observe(chartContainerRef.current);
+
+    // 2. ROBUST DATA FETCHING & SCRUBBING
     fetch(`${ENGINE_URL}/api/chart?ticker=${ticker}`)
       .then(res => res.json())
       .then(data => {
-        if (data && data.length > 0) {
-          const sortedData = data.sort((a: any, b: any) => a.time - b.time);
-          candlestickSeries.setData(sortedData);
+        // Extract array whether the backend wraps it in an object { chart: [...] } or just [...]
+        let rawData = Array.isArray(data) ? data : (data.chart || data.data || []);
+        
+        if (rawData.length > 0) {
+          const cleanData = rawData
+            .map((d: any) => ({
+               // Lightweight charts needs SECONDS. If backend sends MILLISECONDS, convert it.
+               time: typeof d.time === 'number' && d.time > 9999999999 ? Math.floor(d.time / 1000) : d.time,
+               open: d.open, high: d.high, low: d.low, close: d.close
+            }))
+            .sort((a: any, b: any) => a.time - b.time)
+            // FATAL ERROR PREVENTION: Deduplicate exact timestamps
+            .filter((item: any, pos: number, ary: any[]) => !pos || item.time !== ary[pos - 1].time);
+
+          series.setData(cleanData);
           chart.timeScale().fitContent();
         }
         setLoading(false);
       })
       .catch(err => {
-        console.error("Chart fetch error:", err);
+        console.error("Chart Error:", err);
         setLoading(false);
       });
 
-    const handleResize = () => {
-      chart.applyOptions({ width: chartContainerRef.current?.clientWidth });
-    };
-
-    window.addEventListener('resize', handleResize);
-    
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       chart.remove();
     };
   }, [ticker]);
 
   return (
-    <div className="w-full h-full relative">
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center text-cyan-500 animate-pulse font-mono text-sm z-10 bg-black/50 backdrop-blur-sm">
-          PULLING TELEMETRY FOR {ticker}...
-        </div>
-      )}
+    <div className="w-full h-full relative flex items-center justify-center">
+      {loading && <div className="absolute z-10 text-cyan-500 animate-pulse font-mono text-xs tracking-widest bg-black/50 px-4 py-2 rounded backdrop-blur-sm border border-cyan-500/20">CALIBRATING CANDLES...</div>}
       <div ref={chartContainerRef} className="w-full h-full absolute inset-0" />
     </div>
   );
