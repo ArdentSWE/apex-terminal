@@ -10,12 +10,13 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // This validates the input against your .env.local file
+        // Safely check credentials using optional chaining (?.)
         if (
           credentials?.username === process.env.ADMIN_USERNAME &&
           credentials?.password === process.env.ADMIN_PASSWORD
         ) {
-          return { id: "1", name: credentials.username };
+          // Pass a fallback string (|| "") to guarantee it's never undefined
+          return { id: "1", name: credentials?.username || "" };
         }
         return null; // Rejects the login if it doesn't match
       }
