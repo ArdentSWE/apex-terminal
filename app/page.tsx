@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert } from 'lucide-react';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
 const ENGINE_URL = "https://apex-engine-production.up.railway.app"; 
@@ -24,9 +25,100 @@ const formatMarkdown = (text: string) => {
 };
 
 export default function Terminal() {
+  const { data: session, status } = useSession();
   const [searchInput, setSearchInput] = useState("");
   const [activeTicker, setActiveTicker] = useState<string | null>(null);
 
+  // Login Form State
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // ------------------------------------------------------------------
+  // STATE 1: LOADING
+  // ------------------------------------------------------------------
+  if (status === "loading") {
+    return (
+      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center text-cyan-500 font-mono text-sm">
+        <div className="flex flex-col items-center animate-pulse">
+          <Activity className="w-12 h-12 mb-4" />
+          <p>ESTABLISHING SECURE CONNECTION...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // STATE 2: THE GATEKEEPER (UNAUTHENTICATED)
+  // ------------------------------------------------------------------
+  if (status === "unauthenticated") {
+    const handleLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsAuthenticating(true);
+      setAuthError("");
+
+      const res = await signIn('credentials', {
+        redirect: false,
+        username,
+        password
+      });
+
+      if (res?.error) {
+        setAuthError("ACCESS DENIED. INVALID CREDENTIALS.");
+        setPassword("");
+        setIsAuthenticating(false);
+      }
+    };
+
+    return (
+      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center font-mono p-4">
+        <div className="bg-[#111] border border-[#333] p-8 md:p-10 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] max-w-md w-full text-center">
+          <div className="w-16 h-16 mx-auto bg-cyan-500/10 border border-cyan-500/50 rounded-full flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(0,255,255,0.2)]">
+            <Lock className="w-8 h-8 text-cyan-500" />
+          </div>
+          <h1 className="text-xl md:text-2xl font-black text-white tracking-widest mb-2">ACE'S HOUSE</h1>
+          <p className="text-[10px] md:text-xs text-gray-500 mb-8 uppercase">Restricted Quantitative Terminal</p>
+          
+          <form onSubmit={handleLogin} className="flex flex-col gap-4 text-left">
+            <div>
+              <label className="text-[10px] md:text-xs text-gray-400 tracking-widest mb-1 flex items-center gap-2"><User className="w-3 h-3" /> OPERATIVE ID</label>
+              <input 
+                type="text" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-[10px] md:text-xs text-gray-400 tracking-widest mb-1 flex items-center gap-2"><KeyRound className="w-3 h-3" /> DECRYPTION KEY</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`w-full bg-[#1a1a1a] border ${authError ? 'border-red-500' : 'border-[#333]'} text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm`}
+                required
+              />
+              {authError && <p className="text-[10px] md:text-xs text-red-500 mt-2 font-bold">{authError}</p>}
+            </div>
+            <button 
+              type="submit"
+              disabled={isAuthenticating}
+              className="w-full mt-4 bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-800 text-black font-bold py-3 rounded transition-colors flex items-center justify-center gap-3 tracking-widest text-xs md:text-sm"
+            >
+              {isAuthenticating ? <Activity className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />} 
+              {isAuthenticating ? 'DECRYPTING...' : 'INITIATE HANDSHAKE'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // STATE 3: THE MATRIX (AUTHENTICATED)
+  // ------------------------------------------------------------------
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
@@ -38,19 +130,17 @@ export default function Terminal() {
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
       
-      {/* MOBILE-RESPONSIVE HEADER */}
+      {/* MOBILE-RESPONSIVE HEADER WITH LOGOUT */}
       <header className="h-auto lg:h-16 border-b border-[#222] bg-[#111] flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-4 lg:gap-0">
         
-        {/* Logo */}
         <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,255,0.2)]">
               <Activity className="text-cyan-400 w-4 h-4" />
             </div>
-            <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE</span>
+            <span className="font-mono font-bold tracking-widest text-base md:text-lg">ACE'S HOUSE</span>
           </div>
           
-          {/* Mobile Back Button (Top Right) */}
           {activeTicker && (
             <button onClick={() => setActiveTicker(null)} className="lg:hidden flex items-center gap-1 text-[10px] hover:text-white text-gray-400 transition-colors bg-[#222] px-2 py-1 rounded border border-[#333]">
               <ArrowLeft className="w-3 h-3" /> BACK
@@ -58,7 +148,6 @@ export default function Terminal() {
           )}
         </div>
 
-        {/* Search Bar */}
         <form onSubmit={handleSearch} className="relative w-full lg:w-[400px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input 
@@ -70,14 +159,21 @@ export default function Terminal() {
           />
         </form>
 
-        {/* Telemetry Details */}
-        <div className="font-mono text-sm flex items-center justify-between w-full lg:w-auto gap-4">
-          {activeTicker && (
-            <button onClick={() => setActiveTicker(null)} className="hidden lg:flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222] px-3 py-1 rounded border border-[#333]">
-              <ArrowLeft className="w-3 h-3" /> BACK TO GLOBAL
-            </button>
-          )}
-          <span className="text-gray-400 text-xs lg:text-sm">TELEMETRY: <span className="text-cyan-400 font-bold ml-1">{activeTicker ? activeTicker : "GLOBAL MACRO"}</span></span>
+        <div className="font-mono text-sm flex flex-wrap items-center justify-between w-full lg:w-auto gap-4">
+          <div className="flex items-center gap-4">
+            {activeTicker && (
+              <button onClick={() => setActiveTicker(null)} className="hidden lg:flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222] px-3 py-1 rounded border border-[#333]">
+                <ArrowLeft className="w-3 h-3" /> BACK TO GLOBAL
+              </button>
+            )}
+            <span className="text-gray-400 text-[10px] md:text-xs">TELEMETRY: <span className="text-cyan-400 font-bold ml-1">{activeTicker ? activeTicker : "GLOBAL MACRO"}</span></span>
+          </div>
+          
+          {/* USER PROFILE & LOGOUT */}
+          <div className="flex items-center gap-3 lg:pl-4 lg:border-l border-[#333]">
+            <span className="text-[10px] md:text-xs text-gray-300 font-bold uppercase hidden md:inline-block">{session?.user?.name}</span>
+            <button onClick={() => signOut()} className="text-[10px] md:text-xs text-red-400 hover:text-red-300 transition-colors font-bold tracking-widest bg-red-500/10 border border-red-500/30 px-2 py-1 rounded">DISCONNECT</button>
+          </div>
         </div>
       </header>
 
@@ -114,8 +210,6 @@ function GlobalDashboard() {
 
   return (
     <main className="flex-1 p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-y-auto lg:overflow-hidden">
-      
-      {/* MACRO NEWS (Stacks on top on mobile) */}
       <section className="col-span-1 lg:col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[400px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Globe className="w-4 h-4 text-blue-400" />
@@ -131,7 +225,6 @@ function GlobalDashboard() {
         </div>
       </section>
 
-      {/* AI ACTIVE PLAYS (Scrolls naturally below news on mobile) */}
       <section className="col-span-1 lg:col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden min-h-[500px] lg:min-h-0 lg:h-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0 gap-2">
           <div className="flex items-center gap-2">
@@ -175,11 +268,6 @@ function GlobalDashboard() {
                   </div>
                 </div>
               ))}
-              <div className="mt-4 border-t border-[#333] pt-4">
-                  <p className="text-[10px] md:text-xs text-gray-500 font-mono italic">
-                    ⚠️ RISK DISCLOSURE: This data is generated autonomously via algorithmic scans. It is NOT financial advice. Options carry extreme variance. Tail strictly at your own risk.
-                  </p>
-              </div>
             </div>
           )}
         </div>
@@ -195,7 +283,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
   return (
     <main className="flex-1 p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-4 overflow-y-auto lg:overflow-hidden">
       
-      {/* MODULE 1: GEX SURFACE */}
       <section className="col-span-1 lg:col-span-8 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <BarChart2 className="w-4 h-4 text-purple-400" />
@@ -206,7 +293,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 2: OPTIONS FLOW TAPE */}
       <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Layers className="w-4 h-4 text-cyan-400" />
@@ -217,7 +303,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 3: AI TRADE THESIS */}
       <section className="col-span-1 lg:col-span-5 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
         <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
           <div className="flex items-center gap-2">
@@ -230,7 +315,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 4: HEATMAP */}
       <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
            <Activity className="w-4 h-4 text-orange-400" />
@@ -241,7 +325,6 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      {/* MODULE 5: TICKER NEWS */}
       <section className="col-span-1 lg:col-span-3 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Newspaper className="w-4 h-4 text-yellow-400" />
@@ -257,9 +340,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
 }
 
 // ------------------------------------------------------------------
-// SUB-COMPONENTS FOR TICKER DASHBOARD
+// SUB-COMPONENTS
 // ------------------------------------------------------------------
-
 function TickerAiThesis({ ticker }: { ticker: string }) {
   const [idea, setIdea] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -268,10 +350,7 @@ function TickerAiThesis({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/equities/ticker_idea?ticker=${ticker}`)
       .then(res => res.json())
-      .then(data => {
-        setIdea(data.idea);
-        setLoading(false);
-      })
+      .then(data => { setIdea(data.idea); setLoading(false); })
       .catch(() => setLoading(false));
   }, [ticker]);
 
@@ -307,10 +386,7 @@ function GexSurface({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/gex?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => {
-        setGexData(data.data || []);
-        setLoading(false);
-      })
+      .then((data) => { setGexData(data.data || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [ticker]);
 
@@ -342,10 +418,7 @@ function OptionsFlow({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/flow?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => {
-        setTape(data.tape || []);
-        setLoading(false);
-      })
+      .then((data) => { setTape(data.tape || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [ticker]);
 
@@ -378,10 +451,7 @@ function MacroDocket({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/news?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => {
-        setNews(data.news || []);
-        setLoading(false);
-      })
+      .then((data) => { setNews(data.news || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [ticker]);
 
@@ -408,10 +478,7 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/heatmap?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => {
-        setHeatmapData(data.data || []);
-        setLoading(false);
-      })
+      .then((data) => { setHeatmapData(data.data || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [ticker]);
 
