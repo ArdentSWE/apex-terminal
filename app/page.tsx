@@ -1,56 +1,29 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import { Search, Activity, Globe, Zap, Clock, ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
 import useSWR from 'swr';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer } from 'recharts';
+import { useRouter } from 'next/navigation';
 
-// --- PHASE 2: STATIC GRID IMPORTS (Build-Safe) ---
 import { Responsive, WidthProvider } from "react-grid-layout/legacy";
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-// Initialize the grid layout engine safely outside the dynamic scope
 const ResponsiveGridLayout = WidthProvider(Responsive);
-
-// --- DYNAMIC IMPORTS (CODE SPLITTING) ---
-// TradingView is massive and relies on the browser 'window' object, so it MUST be lazy-loaded
-const LiveChart = dynamic(() => import('@/components/LiveChart'), { ssr: false });
-
-// --- CUSTOM COMPONENTS ---
 import WhaleTape from '@/components/WhaleTape';
-import ApexOracle from '@/components/ApexOracle';
 
-// Note: Ensure the environment variable is set. Fallback provided for safety.
 const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app"; 
 
-// The SWR Global Fetcher
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error('API Error');
   return res.json();
 });
 
-// Markdown Parser
-const formatMarkdown = (text: string) => {
-  if (!text) return null;
-  return text.split('\n').map((line, i) => {
-    const parts = line.split(/(\*\*.*?\*\*)/g);
-    return (
-      <p key={i} className={`mb-2 ${line.startsWith('-') ? 'pl-4 border-l-2 border-[#333] ml-2' : ''}`}>
-        {parts.map((part, j) => {
-          if (part.startsWith('**') && part.endsWith('**')) return <strong key={j} className="text-white">{part.slice(2, -2)}</strong>;
-          return part;
-        })}
-      </p>
-    );
-  });
-};
-
-export default function Terminal() {
+export default function TerminalGlobal() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  
   const [searchInput, setSearchInput] = useState("");
-  const [activeTicker, setActiveTicker] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState("");
@@ -58,19 +31,11 @@ export default function Terminal() {
   const [authError, setAuthError] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  // --- REQUIREMENT 3: KEYBOARD-FIRST NAVIGATION ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Press '/' to instantly focus the search bar
       if (e.key === '/' && document.activeElement !== searchInputRef.current) {
         e.preventDefault();
         searchInputRef.current?.focus();
-      }
-      // Press 'Escape' to clear search and return to global view
-      if (e.key === 'Escape') {
-        setActiveTicker(null);
-        setSearchInput("");
-        searchInputRef.current?.blur();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -79,12 +44,8 @@ export default function Terminal() {
 
   if (status === "loading") {
     return (
-      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center text-cyan-500 font-mono text-sm relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-[50%] h-[50%] bg-cyan-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
-        <div className="flex flex-col items-center animate-pulse relative z-10">
-          <Activity className="w-12 h-12 mb-4" />
-          <p>ESTABLISHING SECURE CONNECTION...</p>
-        </div>
+      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center text-cyan-500 font-mono text-sm">
+        <Activity className="w-12 h-12 mb-4 animate-pulse" />
       </div>
     );
   }
@@ -96,7 +57,7 @@ export default function Terminal() {
       setAuthError("");
       const res = await signIn('credentials', { redirect: false, username, password });
       if (res?.error) {
-        setAuthError("ACCESS DENIED. INVALID CREDENTIALS.");
+        setAuthError("ACCESS DENIED.");
         setPassword("");
         setIsAuthenticating(false);
       }
@@ -104,25 +65,16 @@ export default function Terminal() {
 
     return (
       <div className="flex h-screen bg-[#0a0a0a] items-center justify-center font-mono p-4 relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
-        <div className="bg-[#111]/60 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] max-w-md w-full text-center relative z-10">
-          <div className="w-16 h-16 mx-auto bg-cyan-500/10 border border-cyan-500/50 rounded-full flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(0,255,255,0.2)]">
-            <Lock className="w-8 h-8 text-cyan-500" />
-          </div>
-          <h1 className="text-xl md:text-2xl font-black text-white tracking-widest mb-2">ACE'S HOUSE</h1>
-          <p className="text-[10px] md:text-xs text-gray-500 mb-8 uppercase">Restricted Quantitative Terminal</p>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4 text-left">
-            <div>
-              <label className="text-[10px] md:text-xs text-gray-400 tracking-widest mb-1 flex items-center gap-2"><User className="w-3 h-3" /> OPERATIVE ID</label>
-              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[#1a1a1a]/80 border border-white/10 text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm" required />
-            </div>
-            <div>
-              <label className="text-[10px] md:text-xs text-gray-400 tracking-widest mb-1 flex items-center gap-2"><KeyRound className="w-3 h-3" /> DECRYPTION KEY</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full bg-[#1a1a1a]/80 border ${authError ? 'border-red-500' : 'border-white/10'} text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm`} required />
-            </div>
-            <button type="submit" disabled={isAuthenticating} className="w-full mt-4 bg-cyan-600/80 hover:bg-cyan-500 backdrop-blur-sm disabled:bg-cyan-800 text-white font-bold py-3 rounded transition-colors flex items-center justify-center gap-3 tracking-widest text-xs md:text-sm border border-cyan-400/50">
-              {isAuthenticating ? <Activity className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />} {isAuthenticating ? 'DECRYPTING...' : 'INITIATE HANDSHAKE'}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[150px] rounded-full z-0" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[150px] rounded-full z-0" />
+        <div className="bg-[#111]/60 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-lg shadow-2xl max-w-md w-full text-center relative z-10">
+          <Lock className="w-8 h-8 text-cyan-500 mx-auto mb-6" />
+          <h1 className="text-2xl font-black text-white tracking-widest mb-2">ACE'S HOUSE</h1>
+          <form onSubmit={handleLogin} className="flex flex-col gap-4 text-left mt-8">
+            <input type="text" placeholder="OPERATIVE ID" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[#1a1a1a]/80 border border-white/10 text-white rounded py-2 px-3 text-sm focus:border-cyan-500 outline-none" required />
+            <input type="password" placeholder="DECRYPTION KEY" value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full bg-[#1a1a1a]/80 border ${authError ? 'border-red-500' : 'border-white/10'} text-white rounded py-2 px-3 text-sm focus:border-cyan-500 outline-none`} required />
+            <button type="submit" disabled={isAuthenticating} className="w-full mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded text-sm tracking-widest transition-colors">
+              {isAuthenticating ? 'DECRYPTING...' : 'INITIATE HANDSHAKE'}
             </button>
           </form>
         </div>
@@ -133,9 +85,7 @@ export default function Terminal() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
-      setActiveTicker(searchInput.toUpperCase().trim());
-      setSearchInput(""); 
-      searchInputRef.current?.blur();
+      router.push(`/${searchInput.toUpperCase().trim()}`);
     }
   };
 
@@ -145,13 +95,11 @@ export default function Terminal() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
 
       <header className="h-auto lg:h-16 border-b border-white/5 bg-[#111]/80 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-4 lg:gap-0 z-20 relative">
-        <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,255,0.2)]">
-              <Activity className="text-cyan-400 w-4 h-4" />
-            </div>
-            <span className="font-mono font-bold tracking-widest text-base md:text-lg">ACE'S HOUSE</span>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center">
+            <Activity className="text-cyan-400 w-4 h-4" />
           </div>
+          <span className="font-mono font-bold tracking-widest text-base md:text-lg">ACE'S HOUSE</span>
         </div>
 
         <form onSubmit={handleSearch} className="relative w-full lg:w-[400px]">
@@ -162,22 +110,15 @@ export default function Terminal() {
             placeholder="Search Ticker (Press '/' to focus)..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full bg-[#1a1a1a]/80 border border-white/10 rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase shadow-inner backdrop-blur-md placeholder-gray-600"
+            className="w-full bg-[#1a1a1a]/80 border border-white/10 rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase shadow-inner backdrop-blur-md"
           />
         </form>
 
-        <div className="font-mono text-sm flex flex-wrap items-center justify-between w-full lg:w-auto gap-4">
-          <div className="flex items-center gap-4">
-            {activeTicker && (
-              <button onClick={() => setActiveTicker(null)} className="flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222]/80 px-3 py-1 rounded border border-white/10">
-                <ArrowLeft className="w-3 h-3" /> <span className="hidden md:inline">BACK (ESC)</span>
-              </button>
-            )}
-            <span className="text-gray-400 text-[10px] md:text-xs">TELEMETRY: <span className="text-cyan-400 font-bold ml-1">{activeTicker ? activeTicker : "GLOBAL MACRO"}</span></span>
-          </div>
-          <div className="flex items-center gap-3 lg:pl-4 lg:border-l border-[#333]">
+        <div className="font-mono text-sm flex flex-wrap items-center gap-4">
+          <span className="text-gray-400 text-[10px] md:text-xs">TELEMETRY: <span className="text-cyan-400 font-bold ml-1">GLOBAL MACRO</span></span>
+          <div className="flex items-center gap-3 pl-4 border-l border-[#333]">
             <span className="text-[10px] md:text-xs text-gray-300 font-bold uppercase hidden md:inline-block">{session?.user?.name}</span>
-            <button onClick={() => signOut()} className="text-[10px] md:text-xs text-red-400 hover:text-red-300 transition-colors font-bold tracking-widest bg-red-500/10 border border-red-500/30 px-2 py-1 rounded backdrop-blur-sm">DISCONNECT</button>
+            <button onClick={() => signOut()} className="text-[10px] md:text-xs text-red-400 hover:text-red-300 transition-colors font-bold tracking-widest bg-red-500/10 border border-red-500/30 px-2 py-1 rounded">DISCONNECT</button>
           </div>
         </div>
       </header>
@@ -187,354 +128,114 @@ export default function Terminal() {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
-        {activeTicker ? <TickerDashboard ticker={activeTicker} /> : <GlobalDashboard />}
+        <GlobalDashboard />
       </div>
     </div>
   );
 }
 
-// ------------------------------------------------------------------
-// GLOBAL DASHBOARD (SWR OPTIMIZED)
-// ------------------------------------------------------------------
 const GlobalDashboard = React.memo(function GlobalDashboard() {
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   const { data: newsData } = useSWR(`${ENGINE_URL}/api/news`, fetcher);
+  // Auto-refresh the algorithmic scanner every 60 seconds
   const { data: playsData, isLoading: loadingPlays } = useSWR(`${ENGINE_URL}/api/equities/global_plays`, fetcher, { refreshInterval: 60000 });
 
   useEffect(() => setMounted(true), []);
 
   const layout = [
-    { i: "news", x: 0, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
-    { i: "setups", x: 4, y: 0, w: 8, h: 4, minW: 4, minH: 3 },
-    { i: "oracle", x: 0, y: 4, w: 12, h: 2, minW: 6, minH: 2 }
+    { i: "news", x: 0, y: 0, w: 3, h: 5, minW: 3, minH: 3 },
+    { i: "day", x: 3, y: 0, w: 3, h: 5, minW: 3, minH: 3 },
+    { i: "swing", x: 6, y: 0, w: 3, h: 5, minW: 3, minH: 3 },
+    { i: "leap", x: 9, y: 0, w: 3, h: 5, minW: 3, minH: 3 }
   ];
 
   if (!mounted) return null;
 
-  return (
-    <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
-      <ResponsiveGridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={100} draggableHandle=".drag-handle" margin={[16, 16]}>
-        
-        <div key="news" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex items-center gap-2 p-4 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
-            <Globe className="w-4 h-4 text-blue-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">GLOBAL BREAKING NEWS</h2>
-          </div>
-          <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
-            {!newsData ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : (newsData.news || []).map((item: any, i: number) => (
-              <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
-                <h3 className="text-sm text-gray-200 font-medium mb-2">{item.title}</h3>
-                <p className="text-xs text-gray-500 font-mono">Source: <span className="text-cyan-400">{item.source}</span></p>
-              </a>
-            ))}
-          </div>
-        </div>
+  const plays = playsData?.plays || [];
+  const dayTrades = plays.filter((p: any) => p.play_type === "DAY TRADE");
+  const swings = plays.filter((p: any) => p.play_type === "SWING");
+  const leaps = plays.filter((p: any) => p.play_type === "LEAP" || p.play_type === "WHALE");
 
-        <div key="setups" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex flex-col md:flex-row md:items-center justify-between p-4 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors gap-2">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-yellow-400" />
-              <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">LIVE QUANTITATIVE SETUPS</h2>
-            </div>
-            <span className="text-[10px] md:text-xs font-mono text-purple-400 border border-purple-500/30 bg-purple-500/10 px-2 py-1 rounded inline-block w-fit">POWERED BY APEX OMNI-AGENT</span>
-          </div>
-          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar relative">
-            {loadingPlays ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-cyan-500 font-mono text-sm">
-                <Activity className="w-12 h-12 mb-4 animate-bounce" />
-                <p className="animate-pulse">SCANNING SMART MONEY CONCEPTS...</p>
-              </div>
-            ) : (!playsData || !playsData.plays || playsData.plays.length === 0) ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm text-center px-4"><p>NO ACTIVE SETUPS FOUND. CHECK BACK AT OPEN.</p></div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {playsData.plays.map((play: any, i: number) => (
-                  <div key={i} className="flex flex-col p-4 md:p-5 bg-[#1a1a1a]/80 border border-white/5 rounded shadow-inner">
-                    <div className="flex flex-wrap justify-between items-start mb-3 border-b border-[#333] pb-3 gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl md:text-2xl font-black text-white">{play.ticker}</span>
-                        <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${play.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : play.play_type === 'SWING' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-purple-500/20 text-purple-400 border-purple-500/50'}`}>
-                          {play.play_type}
-                        </span>
-                      </div>
-                      <div className={`px-2 py-1 md:px-3 md:py-1 text-xs md:text-sm font-bold font-mono rounded ${play.direction === 'CALLS' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {play.strike} {play.direction}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 mb-4 font-mono text-xs md:text-sm text-gray-400">
-                      <div>🎯 Confidence: <span className="text-white font-bold">{play.confidence}%</span></div>
-                      <div>⏳ Expiration: <span className="text-white font-bold">{play.expiration}</span></div>
-                    </div>
-                    <div className="text-xs md:text-sm text-gray-300 bg-[#0a0a0a]/50 border border-white/5 p-3 rounded font-mono leading-relaxed">
-                      <span className="text-yellow-400 font-bold mr-2">🧠 THESIS:</span>{play.thesis}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+  const renderPlayCard = (play: any, colorTheme: string) => (
+    <div key={play.ticker} onClick={() => router.push(`/${play.ticker}`)} className="flex flex-col p-4 bg-[#1a1a1a]/80 border border-white/5 rounded shadow-inner cursor-pointer hover:border-cyan-500/50 transition-colors group">
+      <div className="flex justify-between items-start mb-2 border-b border-[#333] pb-2">
+        <span className="text-xl font-black text-white group-hover:text-cyan-400 transition-colors">{play.ticker}</span>
+        <div className={`px-2 py-1 text-xs font-bold font-mono rounded ${play.direction === 'CALLS' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
+          {play.strike} {play.direction}
         </div>
-
-        <div key="oracle" className="drag-handle cursor-grab active:cursor-grabbing">
-          <ApexOracle />
-        </div>
-
-      </ResponsiveGridLayout>
+      </div>
+      <div className="flex justify-between mb-3 font-mono text-xs text-gray-400">
+        <div>🎯 <span className="text-white">{play.confidence}%</span></div>
+        <div>⏳ <span className="text-white">{play.expiration}</span></div>
+      </div>
+      <div className="text-xs text-gray-300 font-mono leading-relaxed line-clamp-3">
+        {play.thesis.replace(/\*\*/g, '')}
+      </div>
     </div>
   );
-});
-
-// ------------------------------------------------------------------
-// TICKER DASHBOARD (SWR OPTIMIZED)
-// ------------------------------------------------------------------
-const TickerDashboard = React.memo(function TickerDashboard({ ticker }: { ticker: string }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  const layout = [
-    { i: "chart", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: "gex", x: 0, y: 4, w: 8, h: 3, minW: 4, minH: 2 },
-    { i: "flow", x: 8, y: 4, w: 4, h: 3, minW: 3, minH: 2 },
-    { i: "thesis", x: 0, y: 7, w: 5, h: 3, minW: 4, minH: 2 },
-    { i: "heatmap", x: 5, y: 7, w: 4, h: 3, minW: 3, minH: 2 },
-    { i: "docket", x: 9, y: 7, w: 3, h: 3, minW: 2, minH: 2 }
-  ];
-
-  if (!mounted) return null;
 
   return (
     <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
       <ResponsiveGridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={120} draggableHandle=".drag-handle" margin={[16, 16]}>
         
-        <div key="chart" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors z-10 relative">
-            <Activity className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">LIVE TELEMETRY - {ticker}</h2>
+        {/* GLOBAL NEWS */}
+        <div key="news" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 hover:bg-white/10">
+            <Globe className="w-4 h-4 text-blue-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">BREAKING NEWS</h2>
           </div>
-          <div className="flex-1 p-0 overflow-hidden relative">
-            <LiveChart ticker={ticker} />
-          </div>
-        </div>
-
-        <div key="gex" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
-            <BarChart2 className="w-4 h-4 text-purple-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">GAMMA EXPOSURE (GEX) - {ticker}</h2>
-          </div>
-          <div className="flex-1 p-2 overflow-hidden">
-            <GexSurface ticker={ticker} />
+          <div className="flex-1 p-3 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+            {!newsData ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : (newsData.news || []).map((item: any, i: number) => (
+              <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all">
+                <h3 className="text-[13px] text-gray-200 font-medium mb-1 line-clamp-3">{item.title}</h3>
+                <p className="text-[10px] text-gray-500 font-mono">{item.source}</p>
+              </a>
+            ))}
           </div>
         </div>
 
-        <div key="flow" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
-            <Layers className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">LIVE PREMIUM FLOW</h2>
+        {/* DAY TRADES */}
+        <div key="day" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 hover:bg-white/10">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">DAY TRADES (0-7 DTE)</h2>
           </div>
-          <div className="flex-1 p-2 overflow-hidden">
-            <OptionsFlow ticker={ticker} />
-          </div>
-        </div>
-
-        <div key="thesis" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
-            <Target className="w-4 h-4 text-green-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">APEX AI THESIS</h2>
-          </div>
-          <div className="flex-1 p-3 overflow-hidden">
-            <TickerAiThesis ticker={ticker} />
+          <div className="flex-1 p-3 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+            {loadingPlays ? <div className="text-cyan-500 font-mono text-xs animate-pulse text-center mt-10">SCANNING 100 TICKERS...</div> : 
+             dayTrades.length === 0 ? <p className="text-xs font-mono text-gray-500 text-center mt-10">NO SETUPS ACTIVE.</p> :
+             dayTrades.map((p: any) => renderPlayCard(p, 'yellow'))}
           </div>
         </div>
 
-        <div key="heatmap" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
-            <Activity className="w-4 h-4 text-orange-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">OPTIONS MATRIX</h2>
+        {/* SWING TRADES */}
+        <div key="swing" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 hover:bg-white/10">
+            <Clock className="w-4 h-4 text-purple-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">SWING PLAYS (1-3 MO)</h2>
           </div>
-          <div className="flex-1 p-3 overflow-hidden">
-            <OptionsHeatmap ticker={ticker} />
+          <div className="flex-1 p-3 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+            {loadingPlays ? <div className="text-purple-500 font-mono text-xs animate-pulse text-center mt-10">CALCULATING ORDER BLOCKS...</div> : 
+             swings.length === 0 ? <p className="text-xs font-mono text-gray-500 text-center mt-10">NO SETUPS ACTIVE.</p> :
+             swings.map((p: any) => renderPlayCard(p, 'purple'))}
           </div>
         </div>
 
-        <div key="docket" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
-          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
-            <Newspaper className="w-4 h-4 text-yellow-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">TICKER DOCKET</h2>
+        {/* LEAPS / WHALES */}
+        <div key="leap" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 hover:bg-white/10">
+            <ShieldAlert className="w-4 h-4 text-green-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">WHALE LEAPS (6+ MO)</h2>
           </div>
-          <div className="flex-1 p-3 overflow-hidden">
-            <MacroDocket ticker={ticker} />
+          <div className="flex-1 p-3 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+            {loadingPlays ? <div className="text-green-500 font-mono text-xs animate-pulse text-center mt-10">HUNTING DARK POOLS...</div> : 
+             leaps.length === 0 ? <p className="text-xs font-mono text-gray-500 text-center mt-10">NO SETUPS ACTIVE.</p> :
+             leaps.map((p: any) => renderPlayCard(p, 'green'))}
           </div>
         </div>
 
       </ResponsiveGridLayout>
-    </div>
-  );
-});
-
-// ------------------------------------------------------------------
-// SUB-COMPONENTS (RENDER ISOLATED WITH REACT.MEMO)
-// ------------------------------------------------------------------
-const TickerAiThesis = React.memo(function TickerAiThesis({ ticker }: { ticker: string }) {
-  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/equities/ticker_idea?ticker=${ticker}`, fetcher);
-
-  if (isLoading) return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">GENERATING QUANT THESIS...</div>;
-  if (!data || !data.idea) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
-
-  const idea = data.idea;
-  return (
-    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2">
-      <div className="flex justify-between items-center mb-4">
-        <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${idea.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-green-500/20 text-green-400 border-green-500/50'}`}>{idea.play_type}</span>
-        <span className="text-xs md:text-sm font-mono text-gray-400">EDGE: <span className="text-white font-bold">{idea.confidence}%</span></span>
-      </div>
-      <div className={`text-center py-3 md:py-4 mb-4 rounded border font-mono font-bold text-base md:text-lg tracking-widest ${idea.direction === 'CALLS' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-        {idea.strike} {idea.direction} <span className="block text-xs md:inline md:ml-2">({idea.expiration})</span>
-      </div>
-      <div className="text-xs md:text-sm text-gray-300 font-mono leading-relaxed">
-        <div className="mb-2"><ShieldAlert className="w-4 h-4 inline mr-1 text-purple-400"/> <strong className="text-white">INSTITUTIONAL READ:</strong></div>
-        {formatMarkdown(idea.thesis)}
-      </div>
-    </div>
-  );
-});
-
-const GexSurface = React.memo(function GexSurface({ ticker }: { ticker: string }) {
-  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/gex?ticker=${ticker}`, fetcher);
-
-  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">CALCULATING GAMMA WALLS...</div>;
-  if (!data || !data.data || data.data.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">NO GEX DATA FOUND.</div>;
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data.data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-        <XAxis dataKey="strike" stroke="#555" tick={{ fill: '#888', fontSize: 10, fontFamily: 'monospace' }} />
-        <YAxis stroke="#555" tick={{ fill: '#888', fontSize: 10, fontFamily: 'monospace' }} width={40} />
-        <Tooltip cursor={{ fill: '#222' }} contentStyle={{ backgroundColor: '#111', borderColor: '#333', color: '#fff', fontFamily: 'monospace', fontSize: '10px' }} formatter={(value: any) => [`${value}`, 'Net Gamma']} />
-        <ReferenceLine y={0} stroke="#444" />
-        <Bar dataKey="gex" radius={[2, 2, 0, 0]}>
-          {data.data.map((entry: any, index: number) => (
-            <Cell key={`cell-${index}`} fill={entry.gex > 0 ? '#00ffff' : '#ef4444'} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-});
-
-const OptionsFlow = React.memo(function OptionsFlow({ ticker }: { ticker: string }) {
-  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/flow?ticker=${ticker}`, fetcher, { refreshInterval: 15000 }); // Refreshes tape every 15s automatically
-  const [typeFilter, setTypeFilter] = useState('ALL');
-  const [sizeFilter, setSizeFilter] = useState('ALL');
-
-  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
-  const tape = data?.tape || [];
-
-  const filteredTape = tape.filter((trade: any) => {
-    if (typeFilter !== 'ALL' && trade.ctype && trade.ctype !== typeFilter) return false;
-    if (sizeFilter !== 'ALL') {
-      const prem = trade.premium || "";
-      if (sizeFilter === '1M+' && !prem.includes('M')) return false;
-      if (sizeFilter === '500K+') {
-         if (!prem.includes('M') && !prem.includes('K')) return false;
-         if (prem.includes('K') && parseFloat(prem.replace(/[^0-9.]/g, '')) < 500) return false;
-      }
-    }
-    return true;
-  });
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-white/5 shrink-0">
-        <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
-          <button onClick={() => setTypeFilter('ALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>ALL</button>
-          <button onClick={() => setTypeFilter('CALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'CALL' ? 'bg-cyan-500/20 text-cyan-400 font-bold border-x border-cyan-500/30' : 'text-gray-500 hover:text-gray-300 border-x border-white/5'}`}>CALLS</button>
-          <button onClick={() => setTypeFilter('PUT')} className={`px-3 py-1 transition-colors ${typeFilter === 'PUT' ? 'bg-fuchsia-500/20 text-fuchsia-400 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>PUTS</button>
-        </div>
-        <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
-          <button onClick={() => setSizeFilter('ALL')} className={`px-3 py-1 transition-colors ${sizeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>SIZE: ALL</button>
-          <button onClick={() => setSizeFilter('500K+')} className={`px-3 py-1 transition-colors ${sizeFilter === '500K+' ? 'bg-yellow-500/20 text-yellow-400 font-bold border-l border-yellow-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>500K+</button>
-          <button onClick={() => setSizeFilter('1M+')} className={`px-3 py-1 transition-colors ${sizeFilter === '1M+' ? 'bg-green-500/20 text-green-400 font-bold border-l border-green-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>1M+</button>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
-        {filteredTape.length === 0 ? (
-           <div className="text-gray-500 font-mono text-xs text-center py-4">NO FLOW MATCHES ACTIVE FILTERS.</div>
-        ) : (
-           filteredTape.map((trade: any, i: number) => (
-            <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a1a]/80 border border-white/5 hover:border-cyan-500/50 rounded text-sm font-mono shrink-0 transition-colors">
-              <div className="flex flex-col">
-                <span className="text-white font-bold tracking-wider">
-                  {trade.ticker} 
-                  <span className={`text-[10px] ml-2 px-1 rounded border ${trade.ctype === 'CALL' ? 'border-cyan-500/30 text-cyan-400 bg-cyan-500/10' : 'border-fuchsia-500/30 text-fuchsia-400 bg-fuchsia-500/10'}`}>
-                    {trade.ctype || 'SWEEP'}
-                  </span>
-                </span>
-                <span className="text-xs text-gray-500 mt-1">{trade.time}</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-green-400 font-bold">{trade.premium}</span>
-                <span className="text-xs text-gray-400">Size: {trade.size}</span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-});
-
-const MacroDocket = React.memo(function MacroDocket({ ticker }: { ticker: string }) {
-  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/news?ticker=${ticker}`, fetcher);
-
-  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
-  if (!data || !data.news || data.news.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO NEWS FOUND.</div>;
-
-  return (
-    <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
-      {data.news.map((item: any, i: number) => (
-        <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
-          <h3 className="text-[13px] md:text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
-          <p className="text-[10px] md:text-xs text-gray-500 font-mono">{item.source}</p>
-        </a>
-      ))}
-    </div>
-  );
-});
-
-const OptionsHeatmap = React.memo(function OptionsHeatmap({ ticker }: { ticker: string }) {
-  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/heatmap?ticker=${ticker}`, fetcher);
-
-  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RENDERING MATRIX...</div>;
-  if (!data || !data.data || data.data.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO MATRIX DATA FOUND.</div>;
-
-  const getCellColor = (vol: number) => {
-    if (vol > 500) return 'bg-cyan-400 text-black font-bold shadow-[0_0_8px_rgba(0,255,255,0.5)] border border-cyan-300';
-    if (vol > 200) return 'bg-cyan-500/60 text-white border border-cyan-500/50';
-    if (vol > 100) return 'bg-cyan-500/30 text-gray-300 border border-white/5';
-    if (vol > 0) return 'bg-[#1a1a1a]/80 text-gray-500 border border-white/5';
-    return 'text-gray-700';
-  };
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden font-mono text-[10px] md:text-xs">
-      <div className="grid grid-cols-4 gap-1 mb-2 text-gray-400 font-bold text-center border-b border-white/10 pb-2 shrink-0">
-        <div>STRIKE</div>
-        <div>NEAR</div>
-        <div>MID</div>
-        <div>FAR</div>
-      </div>
-      <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
-        {data.data.map((row: any, i: number) => (
-          <div key={i} className="grid grid-cols-4 gap-1 text-center">
-            <div className="flex items-center justify-center bg-[#222]/80 border border-white/5 rounded py-2 font-bold text-gray-200">${row.strike}</div>
-            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp1)}`}>{row.exp1 > 0 ? row.exp1 : '-'}</div>
-            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp2)}`}>{row.exp2 > 0 ? row.exp2 : '-'}</div>
-            <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp3)}`}>{row.exp3 > 0 ? row.exp3 : '-'}</div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 });
