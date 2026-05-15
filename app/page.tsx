@@ -4,11 +4,17 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
+// --- PHASE 2: DRAG AND DROP ENGINE ---
+import { Responsive, WidthProvider } from "react-grid-layout";
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
 // --- CUSTOM COMPONENTS ---
 import WhaleTape from '@/components/WhaleTape';
 import ApexOracle from '@/components/ApexOracle';
 import LiveChart from '@/components/LiveChart';
 
+const ResponsiveGridLayout = WidthProvider(Responsive);
 const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app"; 
 
 // Markdown Parser
@@ -184,7 +190,8 @@ export default function Terminal() {
         </div>
       </header>
 
-      <div className="z-10 relative">
+      {/* WHALE TAPE */}
+      <div className="z-10 relative shrink-0 cursor-move">
         <WhaleTape />
       </div>
 
@@ -196,14 +203,17 @@ export default function Terminal() {
 }
 
 // ------------------------------------------------------------------
-// VIEW 1: GLOBAL MACRO DASHBOARD
+// VIEW 1: GLOBAL MACRO DASHBOARD (WITH PHASE 2 DRAG & DROP)
 // ------------------------------------------------------------------
 function GlobalDashboard() {
   const [news, setNews] = useState<any[]>([]);
   const [plays, setPlays] = useState<any[]>([]);
   const [loadingPlays, setLoadingPlays] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    
     fetch(`${ENGINE_URL}/api/news`)
       .then(res => res.json())
       .then(data => setNews(data.news || []))
@@ -219,16 +229,32 @@ function GlobalDashboard() {
       .catch(() => setLoadingPlays(false));
   }, []);
 
+  const layout = [
+    { i: "news", x: 0, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
+    { i: "setups", x: 4, y: 0, w: 8, h: 4, minW: 4, minH: 3 },
+    { i: "oracle", x: 0, y: 4, w: 12, h: 2, minW: 6, minH: 2 }
+  ];
+
+  if (!mounted) return null;
+
   return (
-    <main className="p-3 lg:p-4 flex flex-col gap-4 max-w-[1600px] mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
+      <ResponsiveGridLayout 
+        className="layout" 
+        layouts={{ lg: layout }} 
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} 
+        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} 
+        rowHeight={100} 
+        draggableHandle=".drag-handle" 
+        margin={[16, 16]}
+      >
         
-        <section className="col-span-1 lg:col-span-4 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[400px] lg:h-[500px]">
-          <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
+        <div key="news" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-4 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
             <Globe className="w-4 h-4 text-blue-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest">GLOBAL BREAKING NEWS</h2>
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">GLOBAL BREAKING NEWS</h2>
           </div>
-          <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
+          <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
             {news.length === 0 ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : news.map((item, i) => (
               <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
                 <h3 className="text-sm text-gray-200 font-medium mb-2">{item.title}</h3>
@@ -236,18 +262,17 @@ function GlobalDashboard() {
               </a>
             ))}
           </div>
-        </section>
+        </div>
 
-        <section className="col-span-1 lg:col-span-8 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg overflow-hidden h-[400px] lg:h-[500px]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-white/10 pb-2 shrink-0 gap-2">
+        <div key="setups" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex flex-col md:flex-row md:items-center justify-between p-4 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors gap-2">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-yellow-400" />
-              <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE QUANTITATIVE SETUPS</h2>
+              <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">LIVE QUANTITATIVE SETUPS</h2>
             </div>
             <span className="text-[10px] md:text-xs font-mono text-purple-400 border border-purple-500/30 bg-purple-500/10 px-2 py-1 rounded inline-block w-fit">POWERED BY APEX OMNI-AGENT</span>
           </div>
-          
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
+          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar relative">
             {loadingPlays ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-cyan-500 font-mono text-sm">
                 <Activity className="w-12 h-12 mb-4 animate-bounce" />
@@ -284,88 +309,110 @@ function GlobalDashboard() {
               </div>
             )}
           </div>
-        </section>
-      </div>
+        </div>
 
-      <section className="w-full">
-        <ApexOracle />
-      </section>
+        <div key="oracle" className="drag-handle cursor-grab active:cursor-grabbing">
+          <ApexOracle />
+        </div>
 
-    </main>
+      </ResponsiveGridLayout>
+    </div>
   );
 }
 
 // ------------------------------------------------------------------
-// VIEW 2: TICKER SPECIFIC DASHBOARD (WITH LIVE CHART INJECTED)
+// VIEW 2: TICKER SPECIFIC DASHBOARD (PHASE 2 + PHASE 4 CHART)
 // ------------------------------------------------------------------
 function TickerDashboard({ ticker }: { ticker: string }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const layout = [
+    { i: "chart", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 }, // PHASE 4 LIVE CHART
+    { i: "gex", x: 0, y: 4, w: 8, h: 3, minW: 4, minH: 2 },
+    { i: "flow", x: 8, y: 4, w: 4, h: 3, minW: 3, minH: 2 },
+    { i: "thesis", x: 0, y: 7, w: 5, h: 3, minW: 4, minH: 2 },
+    { i: "heatmap", x: 5, y: 7, w: 4, h: 3, minW: 3, minH: 2 },
+    { i: "docket", x: 9, y: 7, w: 3, h: 3, minW: 2, minH: 2 }
+  ];
+
+  if (!mounted) return null;
+
   return (
-    <main className="p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-w-[1600px] mx-auto">
-      
-      {/* PHASE 4: LIVE TRADINGVIEW CHART INJECTED AT TOP */}
-      <section className="col-span-1 lg:col-span-12 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg min-h-[400px]">
-        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
-          <Activity className="w-4 h-4 text-cyan-400" />
-          <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE TELEMETRY - {ticker}</h2>
-        </div>
-        <div className="flex-1 overflow-hidden relative">
-          <LiveChart ticker={ticker} />
-        </div>
-      </section>
-
-      <section className="col-span-1 lg:col-span-8 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
-        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
-          <BarChart2 className="w-4 h-4 text-purple-400" />
-          <h2 className="text-xs font-bold text-gray-400 tracking-widest">GAMMA EXPOSURE (GEX) - {ticker}</h2>
-        </div>
-        <div className="flex-1 overflow-hidden min-h-[250px]">
-          <GexSurface ticker={ticker} />
-        </div>
-      </section>
-
-      <section className="col-span-1 lg:col-span-4 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
-        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
-          <Layers className="w-4 h-4 text-cyan-400" />
-          <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE PREMIUM FLOW</h2>
-        </div>
-        <div className="flex-1 overflow-hidden">
-          <OptionsFlow ticker={ticker} />
-        </div>
-      </section>
-
-      <section className="col-span-1 lg:col-span-5 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
-        <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-green-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest">APEX AI THESIS</h2>
+    <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
+      <ResponsiveGridLayout 
+        className="layout" 
+        layouts={{ lg: layout }} 
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} 
+        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} 
+        rowHeight={120} 
+        draggableHandle=".drag-handle" 
+        margin={[16, 16]}
+      >
+        
+        {/* PHASE 4: LIVE CHART */}
+        <div key="chart" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors z-10 relative">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">LIVE TELEMETRY - {ticker}</h2>
+          </div>
+          <div className="flex-1 p-0 overflow-hidden relative">
+            <LiveChart ticker={ticker} />
           </div>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <TickerAiThesis ticker={ticker} />
-        </div>
-      </section>
 
-      <section className="col-span-1 lg:col-span-4 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
-        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
-           <Activity className="w-4 h-4 text-orange-400" />
-           <h2 className="text-xs font-bold text-gray-400 tracking-widest">OPTIONS MATRIX</h2>
+        <div key="gex" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
+            <BarChart2 className="w-4 h-4 text-purple-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">GAMMA EXPOSURE (GEX) - {ticker}</h2>
+          </div>
+          <div className="flex-1 p-2 overflow-hidden">
+            <GexSurface ticker={ticker} />
+          </div>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <OptionsHeatmap ticker={ticker} />
-        </div>
-      </section>
 
-      <section className="col-span-1 lg:col-span-3 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
-        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
-          <Newspaper className="w-4 h-4 text-yellow-400" />
-          <h2 className="text-xs font-bold text-gray-400 tracking-widest">TICKER DOCKET</h2>
+        <div key="flow" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
+            <Layers className="w-4 h-4 text-cyan-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">LIVE PREMIUM FLOW</h2>
+          </div>
+          <div className="flex-1 p-2 overflow-hidden">
+            <OptionsFlow ticker={ticker} />
+          </div>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <MacroDocket ticker={ticker} />
-        </div>
-      </section>
 
-    </main>
+        <div key="thesis" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
+            <Target className="w-4 h-4 text-green-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">APEX AI THESIS</h2>
+          </div>
+          <div className="flex-1 p-3 overflow-hidden">
+            <TickerAiThesis ticker={ticker} />
+          </div>
+        </div>
+
+        <div key="heatmap" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
+            <Activity className="w-4 h-4 text-orange-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">OPTIONS MATRIX</h2>
+          </div>
+          <div className="flex-1 p-3 overflow-hidden">
+            <OptionsHeatmap ticker={ticker} />
+          </div>
+        </div>
+
+        <div key="docket" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
+          <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
+            <Newspaper className="w-4 h-4 text-yellow-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">TICKER DOCKET</h2>
+          </div>
+          <div className="flex-1 p-3 overflow-hidden">
+            <MacroDocket ticker={ticker} />
+          </div>
+        </div>
+
+      </ResponsiveGridLayout>
+    </div>
   );
 }
 
@@ -380,12 +427,20 @@ function TickerAiThesis({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/equities/ticker_idea?ticker=${ticker}`)
       .then(res => res.json())
-      .then(data => { setIdea(data.idea); setLoading(false); })
+      .then(data => { 
+        setIdea(data.idea); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   }, [ticker]);
 
-  if (loading) return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">GENERATING QUANT THESIS...</div>;
-  if (!idea) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
+  if (loading) {
+    return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">GENERATING QUANT THESIS...</div>;
+  }
+  
+  if (!idea) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
+  }
 
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2">
@@ -416,12 +471,20 @@ function GexSurface({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/gex?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => { setGexData(data.data || []); setLoading(false); })
+      .then((data) => { 
+        setGexData(data.data || []); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   }, [ticker]);
 
-  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">CALCULATING GAMMA WALLS...</div>;
-  if (gexData.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">NO GEX DATA FOUND.</div>;
+  if (loading) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">CALCULATING GAMMA WALLS...</div>;
+  }
+  
+  if (gexData.length === 0) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">NO GEX DATA FOUND.</div>;
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -454,15 +517,20 @@ function OptionsFlow({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/flow?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => { setTape(data.tape || []); setLoading(false); })
+      .then((data) => { 
+        setTape(data.tape || []); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   }, [ticker]);
 
   const filteredTape = tape.filter(trade => {
     if (typeFilter !== 'ALL' && trade.ctype && trade.ctype !== typeFilter) return false;
+    
     if (sizeFilter !== 'ALL') {
       const prem = trade.premium || "";
       if (sizeFilter === '1M+' && !prem.includes('M')) return false;
+      
       if (sizeFilter === '500K+') {
          if (!prem.includes('M') && !prem.includes('K')) return false;
          if (prem.includes('K')) {
@@ -474,22 +542,27 @@ function OptionsFlow({ ticker }: { ticker: string }) {
     return true;
   });
 
-  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
+  if (loading) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      
       <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-white/5 shrink-0">
         <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
           <button onClick={() => setTypeFilter('ALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>ALL</button>
           <button onClick={() => setTypeFilter('CALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'CALL' ? 'bg-cyan-500/20 text-cyan-400 font-bold border-x border-cyan-500/30' : 'text-gray-500 hover:text-gray-300 border-x border-white/5'}`}>CALLS</button>
           <button onClick={() => setTypeFilter('PUT')} className={`px-3 py-1 transition-colors ${typeFilter === 'PUT' ? 'bg-fuchsia-500/20 text-fuchsia-400 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>PUTS</button>
         </div>
+        
         <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
           <button onClick={() => setSizeFilter('ALL')} className={`px-3 py-1 transition-colors ${sizeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>SIZE: ALL</button>
           <button onClick={() => setSizeFilter('500K+')} className={`px-3 py-1 transition-colors ${sizeFilter === '500K+' ? 'bg-yellow-500/20 text-yellow-400 font-bold border-l border-yellow-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>500K+</button>
           <button onClick={() => setSizeFilter('1M+')} className={`px-3 py-1 transition-colors ${sizeFilter === '1M+' ? 'bg-green-500/20 text-green-400 font-bold border-l border-green-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>1M+</button>
         </div>
       </div>
+
       <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
         {filteredTape.length === 0 ? (
            <div className="text-gray-500 font-mono text-xs text-center py-4">NO FLOW MATCHES ACTIVE FILTERS.</div>
@@ -525,12 +598,20 @@ function MacroDocket({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/news?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => { setNews(data.news || []); setLoading(false); })
+      .then((data) => { 
+        setNews(data.news || []); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   }, [ticker]);
 
-  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
-  if (news.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO NEWS FOUND.</div>;
+  if (loading) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
+  }
+  
+  if (news.length === 0) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO NEWS FOUND.</div>;
+  }
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
@@ -552,12 +633,20 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
     setLoading(true);
     fetch(`${ENGINE_URL}/api/heatmap?ticker=${ticker}`)
       .then((res) => res.json())
-      .then((data) => { setHeatmapData(data.data || []); setLoading(false); })
+      .then((data) => { 
+        setHeatmapData(data.data || []); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   }, [ticker]);
 
-  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RENDERING MATRIX...</div>;
-  if (heatmapData.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO MATRIX DATA FOUND.</div>;
+  if (loading) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RENDERING MATRIX...</div>;
+  }
+  
+  if (heatmapData.length === 0) {
+    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO MATRIX DATA FOUND.</div>;
+  }
 
   const getCellColor = (vol: number) => {
     if (vol > 500) return 'bg-cyan-400 text-black font-bold shadow-[0_0_8px_rgba(0,255,255,0.5)] border border-cyan-300';
