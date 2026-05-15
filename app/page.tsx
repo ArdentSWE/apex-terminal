@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Search, Activity, BarChart2, Layers, Newspaper, Crosshair, Globe, ArrowLeft, Target, Zap, ShieldAlert } from 'lucide-react';
+import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
 const ENGINE_URL = "https://apex-engine-production.up.railway.app"; 
 
-// 🛡️ THE FIX: Re-using the markdown parser from the sports page
+// Markdown Parser
 const formatMarkdown = (text: string) => {
   if (!text) return null;
   return text.split('\n').map((line, i) => {
@@ -38,16 +38,28 @@ export default function Terminal() {
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
       
-      {/* HEADER & MASTER SEARCH */}
-      <header className="h-16 border-b border-[#222] bg-[#111] flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,255,0.2)]">
-            <Activity className="text-cyan-400 w-4 h-4" />
+      {/* MOBILE-RESPONSIVE HEADER */}
+      <header className="h-auto lg:h-16 border-b border-[#222] bg-[#111] flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-4 lg:gap-0">
+        
+        {/* Logo */}
+        <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,255,0.2)]">
+              <Activity className="text-cyan-400 w-4 h-4" />
+            </div>
+            <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE</span>
           </div>
-          <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE</span>
+          
+          {/* Mobile Back Button (Top Right) */}
+          {activeTicker && (
+            <button onClick={() => setActiveTicker(null)} className="lg:hidden flex items-center gap-1 text-[10px] hover:text-white text-gray-400 transition-colors bg-[#222] px-2 py-1 rounded border border-[#333]">
+              <ArrowLeft className="w-3 h-3" /> BACK
+            </button>
+          )}
         </div>
 
-        <form onSubmit={handleSearch} className="relative w-[400px]">
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="relative w-full lg:w-[400px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input 
             type="text" 
@@ -58,13 +70,14 @@ export default function Terminal() {
           />
         </form>
 
-        <div className="font-mono text-sm text-gray-400 flex items-center gap-4">
+        {/* Telemetry Details */}
+        <div className="font-mono text-sm flex items-center justify-between w-full lg:w-auto gap-4">
           {activeTicker && (
-            <button onClick={() => setActiveTicker(null)} className="flex items-center gap-1 text-xs hover:text-white transition-colors bg-[#222] px-3 py-1 rounded border border-[#333]">
+            <button onClick={() => setActiveTicker(null)} className="hidden lg:flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222] px-3 py-1 rounded border border-[#333]">
               <ArrowLeft className="w-3 h-3" /> BACK TO GLOBAL
             </button>
           )}
-          <span>TELEMETRY: <span className="text-cyan-400 font-bold ml-1">{activeTicker ? activeTicker : "GLOBAL MACRO"}</span></span>
+          <span className="text-gray-400 text-xs lg:text-sm">TELEMETRY: <span className="text-cyan-400 font-bold ml-1">{activeTicker ? activeTicker : "GLOBAL MACRO"}</span></span>
         </div>
       </header>
 
@@ -100,8 +113,10 @@ function GlobalDashboard() {
   }, []);
 
   return (
-    <main className="flex-1 p-4 grid grid-cols-12 gap-4 min-h-0">
-      <section className="col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+    <main className="flex-1 p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-y-auto lg:overflow-hidden">
+      
+      {/* MACRO NEWS (Stacks on top on mobile) */}
+      <section className="col-span-1 lg:col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[400px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Globe className="w-4 h-4 text-blue-400" />
           <h2 className="text-xs font-bold text-gray-400 tracking-widest">GLOBAL BREAKING NEWS</h2>
@@ -116,13 +131,14 @@ function GlobalDashboard() {
         </div>
       </section>
 
-      <section className="col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden">
-        <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
+      {/* AI ACTIVE PLAYS (Scrolls naturally below news on mobile) */}
+      <section className="col-span-1 lg:col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden min-h-[500px] lg:min-h-0 lg:h-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0 gap-2">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-yellow-400" />
             <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE QUANTITATIVE SETUPS</h2>
           </div>
-          <span className="text-xs font-mono text-purple-400 border border-purple-500/30 bg-purple-500/10 px-2 py-1 rounded">POWERED BY APEX OMNI-AGENT</span>
+          <span className="text-[10px] md:text-xs font-mono text-purple-400 border border-purple-500/30 bg-purple-500/10 px-2 py-1 rounded inline-block w-fit">POWERED BY APEX OMNI-AGENT</span>
         </div>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
@@ -132,33 +148,38 @@ function GlobalDashboard() {
               <p className="animate-pulse">SCANNING SMART MONEY CONCEPTS...</p>
             </div>
           ) : plays.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm text-center px-4">
               <p>NO ACTIVE SETUPS FOUND. CHECK BACK AT OPEN.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {plays.map((play, i) => (
-                <div key={i} className="flex flex-col p-5 bg-[#1a1a1a] border border-[#333] rounded shadow-inner">
-                  <div className="flex justify-between items-start mb-3 border-b border-[#333] pb-3">
+                <div key={i} className="flex flex-col p-4 md:p-5 bg-[#1a1a1a] border border-[#333] rounded shadow-inner">
+                  <div className="flex flex-wrap justify-between items-start mb-3 border-b border-[#333] pb-3 gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl font-black text-white">{play.ticker}</span>
-                      <span className={`px-2 py-1 text-xs font-bold font-mono rounded border ${play.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : play.play_type === 'SWING' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-purple-500/20 text-purple-400 border-purple-500/50'}`}>
+                      <span className="text-xl md:text-2xl font-black text-white">{play.ticker}</span>
+                      <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${play.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : play.play_type === 'SWING' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-purple-500/20 text-purple-400 border-purple-500/50'}`}>
                         {play.play_type}
                       </span>
                     </div>
-                    <div className={`px-3 py-1 text-sm font-bold font-mono rounded ${play.direction === 'CALLS' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
+                    <div className={`px-2 py-1 md:px-3 md:py-1 text-xs md:text-sm font-bold font-mono rounded ${play.direction === 'CALLS' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
                       {play.strike} {play.direction}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 mb-4 font-mono text-sm text-gray-400">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 mb-4 font-mono text-xs md:text-sm text-gray-400">
                     <div>🎯 Confidence: <span className="text-white font-bold">{play.confidence}%</span></div>
                     <div>⏳ Expiration: <span className="text-white font-bold">{play.expiration}</span></div>
                   </div>
-                  <div className="text-sm text-gray-300 bg-[#111] border border-[#222] p-3 rounded font-mono leading-relaxed">
+                  <div className="text-xs md:text-sm text-gray-300 bg-[#111] border border-[#222] p-3 rounded font-mono leading-relaxed">
                     <span className="text-yellow-400 font-bold mr-2">🧠 THESIS:</span>{play.thesis}
                   </div>
                 </div>
               ))}
+              <div className="mt-4 border-t border-[#333] pt-4">
+                  <p className="text-[10px] md:text-xs text-gray-500 font-mono italic">
+                    ⚠️ RISK DISCLOSURE: This data is generated autonomously via algorithmic scans. It is NOT financial advice. Options carry extreme variance. Tail strictly at your own risk.
+                  </p>
+              </div>
             </div>
           )}
         </div>
@@ -172,19 +193,21 @@ function GlobalDashboard() {
 // ------------------------------------------------------------------
 function TickerDashboard({ ticker }: { ticker: string }) {
   return (
-    <main className="flex-1 p-4 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
+    <main className="flex-1 p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-4 overflow-y-auto lg:overflow-hidden">
       
-      <section className="col-span-8 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+      {/* MODULE 1: GEX SURFACE */}
+      <section className="col-span-1 lg:col-span-8 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <BarChart2 className="w-4 h-4 text-purple-400" />
           <h2 className="text-xs font-bold text-gray-400 tracking-widest">GAMMA EXPOSURE (GEX) - {ticker}</h2>
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-[250px]">
           <GexSurface ticker={ticker} />
         </div>
       </section>
 
-      <section className="col-span-4 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+      {/* MODULE 2: OPTIONS FLOW TAPE */}
+      <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Layers className="w-4 h-4 text-cyan-400" />
           <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE PREMIUM FLOW</h2>
@@ -194,7 +217,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="col-span-5 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+      {/* MODULE 3: AI TRADE THESIS */}
+      <section className="col-span-1 lg:col-span-5 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
         <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-green-400" />
@@ -206,7 +230,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="col-span-4 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+      {/* MODULE 4: HEATMAP */}
+      <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
            <Activity className="w-4 h-4 text-orange-400" />
            <h2 className="text-xs font-bold text-gray-400 tracking-widest">OPTIONS MATRIX</h2>
@@ -216,7 +241,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="col-span-3 row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg">
+      {/* MODULE 5: TICKER NEWS */}
+      <section className="col-span-1 lg:col-span-3 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
         <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
           <Newspaper className="w-4 h-4 text-yellow-400" />
           <h2 className="text-xs font-bold text-gray-400 tracking-widest">TICKER DOCKET</h2>
@@ -249,23 +275,23 @@ function TickerAiThesis({ ticker }: { ticker: string }) {
       .catch(() => setLoading(false));
   }, [ticker]);
 
-  if (loading) return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">GENERATING QUANT THESIS...</div>;
-  if (!idea) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
+  if (loading) return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">GENERATING QUANT THESIS...</div>;
+  if (!idea) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2">
       <div className="flex justify-between items-center mb-4">
-        <span className={`px-2 py-1 text-xs font-bold font-mono rounded border ${idea.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-green-500/20 text-green-400 border-green-500/50'}`}>
+        <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${idea.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-green-500/20 text-green-400 border-green-500/50'}`}>
           {idea.play_type}
         </span>
-        <span className="text-sm font-mono text-gray-400">EDGE: <span className="text-white font-bold">{idea.confidence}%</span></span>
+        <span className="text-xs md:text-sm font-mono text-gray-400">EDGE: <span className="text-white font-bold">{idea.confidence}%</span></span>
       </div>
       
-      <div className={`text-center py-4 mb-4 rounded border font-mono font-bold text-lg tracking-widest ${idea.direction === 'CALLS' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-        {idea.strike} {idea.direction} ({idea.expiration})
+      <div className={`text-center py-3 md:py-4 mb-4 rounded border font-mono font-bold text-base md:text-lg tracking-widest ${idea.direction === 'CALLS' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+        {idea.strike} {idea.direction} <span className="block text-xs md:inline md:ml-2">({idea.expiration})</span>
       </div>
 
-      <div className="text-sm text-gray-300 font-mono leading-relaxed">
+      <div className="text-xs md:text-sm text-gray-300 font-mono leading-relaxed">
         <div className="mb-2"><ShieldAlert className="w-4 h-4 inline mr-1 text-purple-400"/> <strong className="text-white">INSTITUTIONAL READ:</strong></div>
         {formatMarkdown(idea.thesis)}
       </div>
@@ -288,15 +314,15 @@ function GexSurface({ ticker }: { ticker: string }) {
       .catch(() => setLoading(false));
   }, [ticker]);
 
-  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">CALCULATING GAMMA WALLS...</div>;
-  if (gexData.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO GEX DATA FOUND.</div>;
+  if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">CALCULATING GAMMA WALLS...</div>;
+  if (gexData.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">NO GEX DATA FOUND.</div>;
 
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={gexData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-        <XAxis dataKey="strike" stroke="#555" tick={{ fill: '#888', fontSize: 12, fontFamily: 'monospace' }} />
-        <YAxis stroke="#555" tick={{ fill: '#888', fontSize: 12, fontFamily: 'monospace' }} />
-        <Tooltip cursor={{ fill: '#222' }} contentStyle={{ backgroundColor: '#111', borderColor: '#333', color: '#fff', fontFamily: 'monospace', fontSize: '12px' }} formatter={(value: any) => [`${value}`, 'Net Gamma']} />
+        <XAxis dataKey="strike" stroke="#555" tick={{ fill: '#888', fontSize: 10, fontFamily: 'monospace' }} />
+        <YAxis stroke="#555" tick={{ fill: '#888', fontSize: 10, fontFamily: 'monospace' }} width={40} />
+        <Tooltip cursor={{ fill: '#222' }} contentStyle={{ backgroundColor: '#111', borderColor: '#333', color: '#fff', fontFamily: 'monospace', fontSize: '10px' }} formatter={(value: any) => [`${value}`, 'Net Gamma']} />
         <ReferenceLine y={0} stroke="#444" />
         <Bar dataKey="gex" radius={[2, 2, 0, 0]}>
           {gexData.map((entry, index) => (
@@ -366,8 +392,8 @@ function MacroDocket({ ticker }: { ticker: string }) {
     <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
       {news.map((item, i) => (
         <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
-          <h3 className="text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
-          <p className="text-xs text-gray-500 font-mono">{item.source}</p>
+          <h3 className="text-[13px] md:text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
+          <p className="text-[10px] md:text-xs text-gray-500 font-mono">{item.source}</p>
         </a>
       ))}
     </div>
@@ -401,12 +427,12 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden font-mono text-xs">
+    <div className="flex flex-col h-full overflow-hidden font-mono text-[10px] md:text-xs">
       <div className="grid grid-cols-4 gap-1 mb-2 text-gray-400 font-bold text-center border-b border-[#333] pb-2 shrink-0">
         <div>STRIKE</div>
-        <div>NEAR TERM</div>
-        <div>MID TERM</div>
-        <div>FAR TERM</div>
+        <div>NEAR</div>
+        <div>MID</div>
+        <div>FAR</div>
       </div>
       
       <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
