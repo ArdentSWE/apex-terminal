@@ -4,16 +4,19 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
-
-// --- DYNAMIC IMPORTS (CODE SPLITTING) ---
-// These massive libraries will not load until they are actually needed
-const ResponsiveGridLayout = dynamic(() => import('react-grid-layout/legacy').then(mod => mod.Responsive), { ssr: false });
-const WidthProvider = dynamic(() => import('react-grid-layout/legacy').then(mod => mod.WidthProvider), { ssr: false });
-const LiveChart = dynamic(() => import('@/components/LiveChart'), { ssr: false });
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer } from 'recharts';
 
+// --- PHASE 2: STATIC GRID IMPORTS (Build-Safe) ---
+import { Responsive, WidthProvider } from "react-grid-layout/legacy";
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+
+// Initialize the grid layout engine safely outside the dynamic scope
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// --- DYNAMIC IMPORTS (CODE SPLITTING) ---
+// TradingView is massive and relies on the browser 'window' object, so it MUST be lazy-loaded
+const LiveChart = dynamic(() => import('@/components/LiveChart'), { ssr: false });
 
 // --- CUSTOM COMPONENTS ---
 import WhaleTape from '@/components/WhaleTape';
@@ -195,11 +198,9 @@ export default function Terminal() {
 // ------------------------------------------------------------------
 const GlobalDashboard = React.memo(function GlobalDashboard() {
   const [mounted, setMounted] = useState(false);
-  const GridLayout = WidthProvider(ResponsiveGridLayout);
 
-  // SWR Caching: Instantly loads from memory if visited before
   const { data: newsData } = useSWR(`${ENGINE_URL}/api/news`, fetcher);
-  const { data: playsData, isLoading: loadingPlays } = useSWR(`${ENGINE_URL}/api/equities/global_plays`, fetcher, { refreshInterval: 60000 }); // Auto-refresh setups every 60s
+  const { data: playsData, isLoading: loadingPlays } = useSWR(`${ENGINE_URL}/api/equities/global_plays`, fetcher, { refreshInterval: 60000 });
 
   useEffect(() => setMounted(true), []);
 
@@ -213,7 +214,7 @@ const GlobalDashboard = React.memo(function GlobalDashboard() {
 
   return (
     <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
-      <GridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={100} draggableHandle=".drag-handle" margin={[16, 16]}>
+      <ResponsiveGridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={100} draggableHandle=".drag-handle" margin={[16, 16]}>
         
         <div key="news" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
           <div className="drag-handle flex items-center gap-2 p-4 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
@@ -279,7 +280,7 @@ const GlobalDashboard = React.memo(function GlobalDashboard() {
           <ApexOracle />
         </div>
 
-      </GridLayout>
+      </ResponsiveGridLayout>
     </div>
   );
 });
@@ -289,7 +290,6 @@ const GlobalDashboard = React.memo(function GlobalDashboard() {
 // ------------------------------------------------------------------
 const TickerDashboard = React.memo(function TickerDashboard({ ticker }: { ticker: string }) {
   const [mounted, setMounted] = useState(false);
-  const GridLayout = WidthProvider(ResponsiveGridLayout);
 
   useEffect(() => setMounted(true), []);
 
@@ -306,7 +306,7 @@ const TickerDashboard = React.memo(function TickerDashboard({ ticker }: { ticker
 
   return (
     <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
-      <GridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={120} draggableHandle=".drag-handle" margin={[16, 16]}>
+      <ResponsiveGridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={120} draggableHandle=".drag-handle" margin={[16, 16]}>
         
         <div key="chart" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
           <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors z-10 relative">
@@ -368,7 +368,7 @@ const TickerDashboard = React.memo(function TickerDashboard({ ticker }: { ticker
           </div>
         </div>
 
-      </GridLayout>
+      </ResponsiveGridLayout>
     </div>
   );
 });
