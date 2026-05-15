@@ -5,7 +5,7 @@ import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Targe
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
 // --- PHASE 2: DRAG AND DROP ENGINE ---
-import { Responsive, WidthProvider } from "react-grid-layout";
+import { Responsive, WidthProvider } from "react-grid-layout/legacy";
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
