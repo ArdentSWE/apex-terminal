@@ -4,7 +4,11 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
-const ENGINE_URL = "https://apex-engine-production.up.railway.app"; 
+// Import the new Phase 3 Components
+import WhaleTape from '@/components/WhaleTape';
+import ApexOracle from '@/components/ApexOracle';
+
+const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app"; 
 
 // Markdown Parser
 const formatMarkdown = (text: string) => {
@@ -131,7 +135,7 @@ export default function Terminal() {
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
       
       {/* MOBILE-RESPONSIVE HEADER WITH LOGOUT */}
-      <header className="h-auto lg:h-16 border-b border-[#222] bg-[#111] flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-4 lg:gap-0">
+      <header className="h-auto lg:h-16 border-b border-[#222] bg-[#111] flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-4 lg:gap-0 z-10">
         
         <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
           <div className="flex items-center gap-3">
@@ -177,6 +181,9 @@ export default function Terminal() {
         </div>
       </header>
 
+      {/* WHALE TAPE SCROLLING MARQUEE */}
+      <WhaleTape />
+
       {/* DYNAMIC VIEW ROUTING */}
       {activeTicker ? <TickerDashboard ticker={activeTicker} /> : <GlobalDashboard />}
 
@@ -209,69 +216,80 @@ function GlobalDashboard() {
   }, []);
 
   return (
-    <main className="flex-1 p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-y-auto lg:overflow-hidden">
-      <section className="col-span-1 lg:col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[400px] lg:h-auto">
-        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
-          <Globe className="w-4 h-4 text-blue-400" />
-          <h2 className="text-xs font-bold text-gray-400 tracking-widest">GLOBAL BREAKING NEWS</h2>
-        </div>
-        <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
-          {news.length === 0 ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : news.map((item, i) => (
-            <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
-              <h3 className="text-sm text-gray-200 font-medium mb-2">{item.title}</h3>
-              <p className="text-xs text-gray-500 font-mono">Source: <span className="text-cyan-400">{item.source}</span></p>
-            </a>
-          ))}
-        </div>
+    <main className="flex-1 p-3 lg:p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+      
+      {/* TOP ROW: NEWS & ALERTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        <section className="col-span-1 lg:col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[400px] lg:h-[500px]">
+          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+            <Globe className="w-4 h-4 text-blue-400" />
+            <h2 className="text-xs font-bold text-gray-400 tracking-widest">GLOBAL BREAKING NEWS</h2>
+          </div>
+          <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
+            {news.length === 0 ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : news.map((item, i) => (
+              <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
+                <h3 className="text-sm text-gray-200 font-medium mb-2">{item.title}</h3>
+                <p className="text-xs text-gray-500 font-mono">Source: <span className="text-cyan-400">{item.source}</span></p>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section className="col-span-1 lg:col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden h-[400px] lg:h-[500px]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0 gap-2">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-yellow-400" />
+              <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE QUANTITATIVE SETUPS</h2>
+            </div>
+            <span className="text-[10px] md:text-xs font-mono text-purple-400 border border-purple-500/30 bg-purple-500/10 px-2 py-1 rounded inline-block w-fit">POWERED BY APEX OMNI-AGENT</span>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
+            {loadingPlays ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-cyan-500 font-mono text-sm">
+                <Activity className="w-12 h-12 mb-4 animate-bounce" />
+                <p className="animate-pulse">SCANNING SMART MONEY CONCEPTS...</p>
+              </div>
+            ) : plays.length === 0 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm text-center px-4">
+                <p>NO ACTIVE SETUPS FOUND. CHECK BACK AT OPEN.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {plays.map((play, i) => (
+                  <div key={i} className="flex flex-col p-4 md:p-5 bg-[#1a1a1a] border border-[#333] rounded shadow-inner">
+                    <div className="flex flex-wrap justify-between items-start mb-3 border-b border-[#333] pb-3 gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl md:text-2xl font-black text-white">{play.ticker}</span>
+                        <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${play.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : play.play_type === 'SWING' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-purple-500/20 text-purple-400 border-purple-500/50'}`}>
+                          {play.play_type}
+                        </span>
+                      </div>
+                      <div className={`px-2 py-1 md:px-3 md:py-1 text-xs md:text-sm font-bold font-mono rounded ${play.direction === 'CALLS' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {play.strike} {play.direction}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 mb-4 font-mono text-xs md:text-sm text-gray-400">
+                      <div>🎯 Confidence: <span className="text-white font-bold">{play.confidence}%</span></div>
+                      <div>⏳ Expiration: <span className="text-white font-bold">{play.expiration}</span></div>
+                    </div>
+                    <div className="text-xs md:text-sm text-gray-300 bg-[#111] border border-[#222] p-3 rounded font-mono leading-relaxed">
+                      <span className="text-yellow-400 font-bold mr-2">🧠 THESIS:</span>{play.thesis}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* BOTTOM ROW: APEX ORACLE CHAT */}
+      <section className="w-full">
+        <ApexOracle />
       </section>
 
-      <section className="col-span-1 lg:col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden min-h-[500px] lg:min-h-0 lg:h-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0 gap-2">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-yellow-400" />
-            <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE QUANTITATIVE SETUPS</h2>
-          </div>
-          <span className="text-[10px] md:text-xs font-mono text-purple-400 border border-purple-500/30 bg-purple-500/10 px-2 py-1 rounded inline-block w-fit">POWERED BY APEX OMNI-AGENT</span>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
-          {loadingPlays ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-cyan-500 font-mono text-sm">
-              <Activity className="w-12 h-12 mb-4 animate-bounce" />
-              <p className="animate-pulse">SCANNING SMART MONEY CONCEPTS...</p>
-            </div>
-          ) : plays.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm text-center px-4">
-              <p>NO ACTIVE SETUPS FOUND. CHECK BACK AT OPEN.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {plays.map((play, i) => (
-                <div key={i} className="flex flex-col p-4 md:p-5 bg-[#1a1a1a] border border-[#333] rounded shadow-inner">
-                  <div className="flex flex-wrap justify-between items-start mb-3 border-b border-[#333] pb-3 gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl md:text-2xl font-black text-white">{play.ticker}</span>
-                      <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${play.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : play.play_type === 'SWING' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-purple-500/20 text-purple-400 border-purple-500/50'}`}>
-                        {play.play_type}
-                      </span>
-                    </div>
-                    <div className={`px-2 py-1 md:px-3 md:py-1 text-xs md:text-sm font-bold font-mono rounded ${play.direction === 'CALLS' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {play.strike} {play.direction}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 mb-4 font-mono text-xs md:text-sm text-gray-400">
-                    <div>🎯 Confidence: <span className="text-white font-bold">{play.confidence}%</span></div>
-                    <div>⏳ Expiration: <span className="text-white font-bold">{play.expiration}</span></div>
-                  </div>
-                  <div className="text-xs md:text-sm text-gray-300 bg-[#111] border border-[#222] p-3 rounded font-mono leading-relaxed">
-                    <span className="text-yellow-400 font-bold mr-2">🧠 THESIS:</span>{play.thesis}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
     </main>
   );
 }
