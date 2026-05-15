@@ -444,6 +444,12 @@ function GexSurface({ ticker }: { ticker: string }) {
 function OptionsFlow({ ticker }: { ticker: string }) {
   const [tape, setTape] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // --- THE SCALPEL: Filter States ---
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [sizeFilter, setSizeFilter] = useState('ALL');
+
+  const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app";
 
   useEffect(() => {
     setLoading(true);
@@ -453,23 +459,74 @@ function OptionsFlow({ ticker }: { ticker: string }) {
       .catch(() => setLoading(false));
   }, [ticker]);
 
+  // --- THE ENGINE: Frontend Data Slicing ---
+  const filteredTape = tape.filter(trade => {
+    // 1. Filter by Flow Type (Calls vs Puts)
+    if (typeFilter !== 'ALL' && trade.ctype && trade.ctype !== typeFilter) return false;
+
+    // 2. Filter by Premium Size
+    if (sizeFilter !== 'ALL') {
+      const prem = trade.premium || "";
+      if (sizeFilter === '1M+' && !prem.includes('M')) return false;
+      if (sizeFilter === '500K+') {
+         if (!prem.includes('M') && !prem.includes('K')) return false;
+         if (prem.includes('K')) {
+           const num = parseFloat(prem.replace(/[^0-9.]/g, ''));
+           if (num < 500) return false;
+         }
+      }
+    }
+    return true;
+  });
+
   if (loading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
-  if (tape.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO FLOW DETECTED.</div>;
 
   return (
-    <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
-      {tape.map((trade, i) => (
-        <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a1a]/80 border border-white/5 hover:border-cyan-500/50 rounded text-sm font-mono shrink-0 transition-colors">
-          <div className="flex flex-col">
-            <span className="text-white font-bold tracking-wider">{trade.ticker}</span>
-            <span className="text-xs text-gray-500">{trade.time}</span>
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="text-red-400 font-bold">{trade.premium}</span>
-            <span className="text-xs text-gray-400">Size: {trade.size}</span>
-          </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      
+      {/* THE CONTROL PANEL */}
+      <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-white/5 shrink-0">
+        
+        {/* Type Toggles */}
+        <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
+          <button onClick={() => setTypeFilter('ALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>ALL</button>
+          <button onClick={() => setTypeFilter('CALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'CALL' ? 'bg-cyan-500/20 text-cyan-400 font-bold border-x border-cyan-500/30' : 'text-gray-500 hover:text-gray-300 border-x border-white/5'}`}>CALLS</button>
+          <button onClick={() => setTypeFilter('PUT')} className={`px-3 py-1 transition-colors ${typeFilter === 'PUT' ? 'bg-fuchsia-500/20 text-fuchsia-400 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>PUTS</button>
         </div>
-      ))}
+        
+        {/* Size Toggles */}
+        <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
+          <button onClick={() => setSizeFilter('ALL')} className={`px-3 py-1 transition-colors ${sizeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>SIZE: ALL</button>
+          <button onClick={() => setSizeFilter('500K+')} className={`px-3 py-1 transition-colors ${sizeFilter === '500K+' ? 'bg-yellow-500/20 text-yellow-400 font-bold border-l border-yellow-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>500K+</button>
+          <button onClick={() => setSizeFilter('1M+')} className={`px-3 py-1 transition-colors ${sizeFilter === '1M+' ? 'bg-green-500/20 text-green-400 font-bold border-l border-green-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>1M+</button>
+        </div>
+
+      </div>
+
+      {/* THE TAPE */}
+      <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
+        {filteredTape.length === 0 ? (
+           <div className="text-gray-500 font-mono text-xs text-center py-4">NO FLOW MATCHES ACTIVE FILTERS.</div>
+        ) : (
+           filteredTape.map((trade, i) => (
+            <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a1a]/80 border border-white/5 hover:border-cyan-500/50 rounded text-sm font-mono shrink-0 transition-colors">
+              <div className="flex flex-col">
+                <span className="text-white font-bold tracking-wider">
+                  {trade.ticker} 
+                  <span className={`text-[10px] ml-2 px-1 rounded border ${trade.ctype === 'CALL' ? 'border-cyan-500/30 text-cyan-400 bg-cyan-500/10' : 'border-fuchsia-500/30 text-fuchsia-400 bg-fuchsia-500/10'}`}>
+                    {trade.ctype || 'SWEEP'}
+                  </span>
+                </span>
+                <span className="text-xs text-gray-500 mt-1">{trade.time}</span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-green-400 font-bold">{trade.premium}</span>
+                <span className="text-xs text-gray-400">Size: {trade.size}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
