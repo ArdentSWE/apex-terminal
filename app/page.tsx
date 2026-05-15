@@ -1,21 +1,32 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Search, Activity, BarChart2, Layers, Newspaper, Globe, ArrowLeft, Target, Zap, ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
+import dynamic from 'next/dynamic';
+import useSWR from 'swr';
 
-// --- PHASE 2: DRAG AND DROP ENGINE ---
-import { Responsive, WidthProvider } from "react-grid-layout/legacy";
+// --- DYNAMIC IMPORTS (CODE SPLITTING) ---
+// These massive libraries will not load until they are actually needed
+const ResponsiveGridLayout = dynamic(() => import('react-grid-layout/legacy').then(mod => mod.Responsive), { ssr: false });
+const WidthProvider = dynamic(() => import('react-grid-layout/legacy').then(mod => mod.WidthProvider), { ssr: false });
+const LiveChart = dynamic(() => import('@/components/LiveChart'), { ssr: false });
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Cell, ResponsiveContainer } from 'recharts';
+
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 // --- CUSTOM COMPONENTS ---
 import WhaleTape from '@/components/WhaleTape';
 import ApexOracle from '@/components/ApexOracle';
-import LiveChart from '@/components/LiveChart';
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+// Note: Ensure the environment variable is set. Fallback provided for safety.
 const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app"; 
+
+// The SWR Global Fetcher
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('API Error');
+  return res.json();
+});
 
 // Markdown Parser
 const formatMarkdown = (text: string) => {
@@ -25,9 +36,7 @@ const formatMarkdown = (text: string) => {
     return (
       <p key={i} className={`mb-2 ${line.startsWith('-') ? 'pl-4 border-l-2 border-[#333] ml-2' : ''}`}>
         {parts.map((part, j) => {
-          if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={j} className="text-white">{part.slice(2, -2)}</strong>;
-          }
+          if (part.startsWith('**') && part.endsWith('**')) return <strong key={j} className="text-white">{part.slice(2, -2)}</strong>;
           return part;
         })}
       </p>
@@ -39,16 +48,32 @@ export default function Terminal() {
   const { data: session, status } = useSession();
   const [searchInput, setSearchInput] = useState("");
   const [activeTicker, setActiveTicker] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Login Form State
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  // ------------------------------------------------------------------
-  // STATE 1: LOADING
-  // ------------------------------------------------------------------
+  // --- REQUIREMENT 3: KEYBOARD-FIRST NAVIGATION ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Press '/' to instantly focus the search bar
+      if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      // Press 'Escape' to clear search and return to global view
+      if (e.key === 'Escape') {
+        setActiveTicker(null);
+        setSearchInput("");
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   if (status === "loading") {
     return (
       <div className="flex h-screen bg-[#0a0a0a] items-center justify-center text-cyan-500 font-mono text-sm relative overflow-hidden">
@@ -61,21 +86,12 @@ export default function Terminal() {
     );
   }
 
-  // ------------------------------------------------------------------
-  // STATE 2: THE GATEKEEPER (UNAUTHENTICATED)
-  // ------------------------------------------------------------------
   if (status === "unauthenticated") {
     const handleLogin = async (e: React.FormEvent) => {
       e.preventDefault();
       setIsAuthenticating(true);
       setAuthError("");
-
-      const res = await signIn('credentials', {
-        redirect: false,
-        username,
-        password
-      });
-
+      const res = await signIn('credentials', { redirect: false, username, password });
       if (res?.error) {
         setAuthError("ACCESS DENIED. INVALID CREDENTIALS.");
         setPassword("");
@@ -87,43 +103,23 @@ export default function Terminal() {
       <div className="flex h-screen bg-[#0a0a0a] items-center justify-center font-mono p-4 relative overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
-        
         <div className="bg-[#111]/60 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] max-w-md w-full text-center relative z-10">
           <div className="w-16 h-16 mx-auto bg-cyan-500/10 border border-cyan-500/50 rounded-full flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(0,255,255,0.2)]">
             <Lock className="w-8 h-8 text-cyan-500" />
           </div>
           <h1 className="text-xl md:text-2xl font-black text-white tracking-widest mb-2">ACE'S HOUSE</h1>
           <p className="text-[10px] md:text-xs text-gray-500 mb-8 uppercase">Restricted Quantitative Terminal</p>
-          
           <form onSubmit={handleLogin} className="flex flex-col gap-4 text-left">
             <div>
               <label className="text-[10px] md:text-xs text-gray-400 tracking-widest mb-1 flex items-center gap-2"><User className="w-3 h-3" /> OPERATIVE ID</label>
-              <input 
-                type="text" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-[#1a1a1a]/80 border border-white/10 text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
-                required
-              />
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[#1a1a1a]/80 border border-white/10 text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm" required />
             </div>
             <div>
               <label className="text-[10px] md:text-xs text-gray-400 tracking-widest mb-1 flex items-center gap-2"><KeyRound className="w-3 h-3" /> DECRYPTION KEY</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full bg-[#1a1a1a]/80 border ${authError ? 'border-red-500' : 'border-white/10'} text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm`}
-                required
-              />
-              {authError && <p className="text-[10px] md:text-xs text-red-500 mt-2 font-bold">{authError}</p>}
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full bg-[#1a1a1a]/80 border ${authError ? 'border-red-500' : 'border-white/10'} text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm`} required />
             </div>
-            <button 
-              type="submit"
-              disabled={isAuthenticating}
-              className="w-full mt-4 bg-cyan-600/80 hover:bg-cyan-500 backdrop-blur-sm disabled:bg-cyan-800 text-white font-bold py-3 rounded transition-colors flex items-center justify-center gap-3 tracking-widest text-xs md:text-sm border border-cyan-400/50"
-            >
-              {isAuthenticating ? <Activity className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />} 
-              {isAuthenticating ? 'DECRYPTING...' : 'INITIATE HANDSHAKE'}
+            <button type="submit" disabled={isAuthenticating} className="w-full mt-4 bg-cyan-600/80 hover:bg-cyan-500 backdrop-blur-sm disabled:bg-cyan-800 text-white font-bold py-3 rounded transition-colors flex items-center justify-center gap-3 tracking-widest text-xs md:text-sm border border-cyan-400/50">
+              {isAuthenticating ? <Activity className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />} {isAuthenticating ? 'DECRYPTING...' : 'INITIATE HANDSHAKE'}
             </button>
           </form>
         </div>
@@ -131,20 +127,17 @@ export default function Terminal() {
     );
   }
 
-  // ------------------------------------------------------------------
-  // STATE 3: THE MATRIX (AUTHENTICATED)
-  // ------------------------------------------------------------------
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
       setActiveTicker(searchInput.toUpperCase().trim());
       setSearchInput(""); 
+      searchInputRef.current?.blur();
     }
   };
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden relative">
-      
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
 
@@ -156,29 +149,25 @@ export default function Terminal() {
             </div>
             <span className="font-mono font-bold tracking-widest text-base md:text-lg">ACE'S HOUSE</span>
           </div>
-          {activeTicker && (
-            <button onClick={() => setActiveTicker(null)} className="lg:hidden flex items-center gap-1 text-[10px] hover:text-white text-gray-400 transition-colors bg-[#222]/80 px-2 py-1 rounded border border-white/10">
-              <ArrowLeft className="w-3 h-3" /> BACK
-            </button>
-          )}
         </div>
 
         <form onSubmit={handleSearch} className="relative w-full lg:w-[400px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input 
+            ref={searchInputRef}
             type="text" 
-            placeholder="Search Ticker (e.g. SPY, NVDA)..."
+            placeholder="Search Ticker (Press '/' to focus)..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full bg-[#1a1a1a]/80 border border-white/10 rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase shadow-inner backdrop-blur-md"
+            className="w-full bg-[#1a1a1a]/80 border border-white/10 rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase shadow-inner backdrop-blur-md placeholder-gray-600"
           />
         </form>
 
         <div className="font-mono text-sm flex flex-wrap items-center justify-between w-full lg:w-auto gap-4">
           <div className="flex items-center gap-4">
             {activeTicker && (
-              <button onClick={() => setActiveTicker(null)} className="hidden lg:flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222]/80 px-3 py-1 rounded border border-white/10">
-                <ArrowLeft className="w-3 h-3" /> BACK TO GLOBAL
+              <button onClick={() => setActiveTicker(null)} className="flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222]/80 px-3 py-1 rounded border border-white/10">
+                <ArrowLeft className="w-3 h-3" /> <span className="hidden md:inline">BACK (ESC)</span>
               </button>
             )}
             <span className="text-gray-400 text-[10px] md:text-xs">TELEMETRY: <span className="text-cyan-400 font-bold ml-1">{activeTicker ? activeTicker : "GLOBAL MACRO"}</span></span>
@@ -190,7 +179,6 @@ export default function Terminal() {
         </div>
       </header>
 
-      {/* WHALE TAPE */}
       <div className="z-10 relative shrink-0 cursor-move">
         <WhaleTape />
       </div>
@@ -203,31 +191,17 @@ export default function Terminal() {
 }
 
 // ------------------------------------------------------------------
-// VIEW 1: GLOBAL MACRO DASHBOARD (WITH PHASE 2 DRAG & DROP)
+// GLOBAL DASHBOARD (SWR OPTIMIZED)
 // ------------------------------------------------------------------
-function GlobalDashboard() {
-  const [news, setNews] = useState<any[]>([]);
-  const [plays, setPlays] = useState<any[]>([]);
-  const [loadingPlays, setLoadingPlays] = useState(true);
+const GlobalDashboard = React.memo(function GlobalDashboard() {
   const [mounted, setMounted] = useState(false);
+  const GridLayout = WidthProvider(ResponsiveGridLayout);
 
-  useEffect(() => {
-    setMounted(true);
-    
-    fetch(`${ENGINE_URL}/api/news`)
-      .then(res => res.json())
-      .then(data => setNews(data.news || []))
-      .catch(() => setNews([]));
+  // SWR Caching: Instantly loads from memory if visited before
+  const { data: newsData } = useSWR(`${ENGINE_URL}/api/news`, fetcher);
+  const { data: playsData, isLoading: loadingPlays } = useSWR(`${ENGINE_URL}/api/equities/global_plays`, fetcher, { refreshInterval: 60000 }); // Auto-refresh setups every 60s
 
-    setLoadingPlays(true);
-    fetch(`${ENGINE_URL}/api/equities/global_plays`)
-      .then(res => res.json())
-      .then(data => {
-        setPlays(data.plays || []);
-        setLoadingPlays(false);
-      })
-      .catch(() => setLoadingPlays(false));
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   const layout = [
     { i: "news", x: 0, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
@@ -239,15 +213,7 @@ function GlobalDashboard() {
 
   return (
     <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
-      <ResponsiveGridLayout 
-        className="layout" 
-        layouts={{ lg: layout }} 
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} 
-        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} 
-        rowHeight={100} 
-        draggableHandle=".drag-handle" 
-        margin={[16, 16]}
-      >
+      <GridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={100} draggableHandle=".drag-handle" margin={[16, 16]}>
         
         <div key="news" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
           <div className="drag-handle flex items-center gap-2 p-4 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors">
@@ -255,7 +221,7 @@ function GlobalDashboard() {
             <h2 className="text-xs font-bold text-gray-400 tracking-widest select-none">GLOBAL BREAKING NEWS</h2>
           </div>
           <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
-            {news.length === 0 ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : news.map((item, i) => (
+            {!newsData ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : (newsData.news || []).map((item: any, i: number) => (
               <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
                 <h3 className="text-sm text-gray-200 font-medium mb-2">{item.title}</h3>
                 <p className="text-xs text-gray-500 font-mono">Source: <span className="text-cyan-400">{item.source}</span></p>
@@ -278,13 +244,11 @@ function GlobalDashboard() {
                 <Activity className="w-12 h-12 mb-4 animate-bounce" />
                 <p className="animate-pulse">SCANNING SMART MONEY CONCEPTS...</p>
               </div>
-            ) : plays.length === 0 ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm text-center px-4">
-                <p>NO ACTIVE SETUPS FOUND. CHECK BACK AT OPEN.</p>
-              </div>
+            ) : (!playsData || !playsData.plays || playsData.plays.length === 0) ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 font-mono text-sm text-center px-4"><p>NO ACTIVE SETUPS FOUND. CHECK BACK AT OPEN.</p></div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {plays.map((play, i) => (
+                {playsData.plays.map((play: any, i: number) => (
                   <div key={i} className="flex flex-col p-4 md:p-5 bg-[#1a1a1a]/80 border border-white/5 rounded shadow-inner">
                     <div className="flex flex-wrap justify-between items-start mb-3 border-b border-[#333] pb-3 gap-3">
                       <div className="flex items-center gap-3">
@@ -315,20 +279,22 @@ function GlobalDashboard() {
           <ApexOracle />
         </div>
 
-      </ResponsiveGridLayout>
+      </GridLayout>
     </div>
   );
-}
+});
 
 // ------------------------------------------------------------------
-// VIEW 2: TICKER SPECIFIC DASHBOARD (PHASE 2 + PHASE 4 CHART)
+// TICKER DASHBOARD (SWR OPTIMIZED)
 // ------------------------------------------------------------------
-function TickerDashboard({ ticker }: { ticker: string }) {
+const TickerDashboard = React.memo(function TickerDashboard({ ticker }: { ticker: string }) {
   const [mounted, setMounted] = useState(false);
+  const GridLayout = WidthProvider(ResponsiveGridLayout);
+
   useEffect(() => setMounted(true), []);
 
   const layout = [
-    { i: "chart", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 }, // PHASE 4 LIVE CHART
+    { i: "chart", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 },
     { i: "gex", x: 0, y: 4, w: 8, h: 3, minW: 4, minH: 2 },
     { i: "flow", x: 8, y: 4, w: 4, h: 3, minW: 3, minH: 2 },
     { i: "thesis", x: 0, y: 7, w: 5, h: 3, minW: 4, minH: 2 },
@@ -340,17 +306,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
 
   return (
     <div className="p-2 lg:p-4 max-w-[1600px] mx-auto min-h-screen">
-      <ResponsiveGridLayout 
-        className="layout" 
-        layouts={{ lg: layout }} 
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} 
-        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} 
-        rowHeight={120} 
-        draggableHandle=".drag-handle" 
-        margin={[16, 16]}
-      >
+      <GridLayout className="layout" layouts={{ lg: layout }} breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }} cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }} rowHeight={120} draggableHandle=".drag-handle" margin={[16, 16]}>
         
-        {/* PHASE 4: LIVE CHART */}
         <div key="chart" className="bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md flex flex-col shadow-lg overflow-hidden group">
           <div className="drag-handle flex items-center gap-2 p-3 border-b border-white/10 shrink-0 cursor-grab active:cursor-grabbing bg-white/5 group-hover:bg-white/10 transition-colors z-10 relative">
             <Activity className="w-4 h-4 text-cyan-400" />
@@ -411,163 +368,101 @@ function TickerDashboard({ ticker }: { ticker: string }) {
           </div>
         </div>
 
-      </ResponsiveGridLayout>
+      </GridLayout>
     </div>
   );
-}
+});
 
 // ------------------------------------------------------------------
-// SUB-COMPONENTS
+// SUB-COMPONENTS (RENDER ISOLATED WITH REACT.MEMO)
 // ------------------------------------------------------------------
-function TickerAiThesis({ ticker }: { ticker: string }) {
-  const [idea, setIdea] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+const TickerAiThesis = React.memo(function TickerAiThesis({ ticker }: { ticker: string }) {
+  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/equities/ticker_idea?ticker=${ticker}`, fetcher);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${ENGINE_URL}/api/equities/ticker_idea?ticker=${ticker}`)
-      .then(res => res.json())
-      .then(data => { 
-        setIdea(data.idea); 
-        setLoading(false); 
-      })
-      .catch(() => setLoading(false));
-  }, [ticker]);
+  if (isLoading) return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">GENERATING QUANT THESIS...</div>;
+  if (!data || !data.idea) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
 
-  if (loading) {
-    return <div className="text-cyan-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">GENERATING QUANT THESIS...</div>;
-  }
-  
-  if (!idea) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">INSUFFICIENT DATA TO GENERATE THESIS.</div>;
-  }
-
+  const idea = data.idea;
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2">
       <div className="flex justify-between items-center mb-4">
-        <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${idea.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-green-500/20 text-green-400 border-green-500/50'}`}>
-          {idea.play_type}
-        </span>
+        <span className={`px-2 py-1 text-[10px] md:text-xs font-bold font-mono rounded border ${idea.play_type === 'DAY TRADE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-green-500/20 text-green-400 border-green-500/50'}`}>{idea.play_type}</span>
         <span className="text-xs md:text-sm font-mono text-gray-400">EDGE: <span className="text-white font-bold">{idea.confidence}%</span></span>
       </div>
-      
       <div className={`text-center py-3 md:py-4 mb-4 rounded border font-mono font-bold text-base md:text-lg tracking-widest ${idea.direction === 'CALLS' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
         {idea.strike} {idea.direction} <span className="block text-xs md:inline md:ml-2">({idea.expiration})</span>
       </div>
-
       <div className="text-xs md:text-sm text-gray-300 font-mono leading-relaxed">
         <div className="mb-2"><ShieldAlert className="w-4 h-4 inline mr-1 text-purple-400"/> <strong className="text-white">INSTITUTIONAL READ:</strong></div>
         {formatMarkdown(idea.thesis)}
       </div>
     </div>
   );
-}
+});
 
-function GexSurface({ ticker }: { ticker: string }) {
-  const [gexData, setGexData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+const GexSurface = React.memo(function GexSurface({ ticker }: { ticker: string }) {
+  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/gex?ticker=${ticker}`, fetcher);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${ENGINE_URL}/api/gex?ticker=${ticker}`)
-      .then((res) => res.json())
-      .then((data) => { 
-        setGexData(data.data || []); 
-        setLoading(false); 
-      })
-      .catch(() => setLoading(false));
-  }, [ticker]);
-
-  if (loading) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">CALCULATING GAMMA WALLS...</div>;
-  }
-  
-  if (gexData.length === 0) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">NO GEX DATA FOUND.</div>;
-  }
+  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse text-center px-4">CALCULATING GAMMA WALLS...</div>;
+  if (!data || !data.data || data.data.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center text-center px-4">NO GEX DATA FOUND.</div>;
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={gexData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+      <BarChart data={data.data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <XAxis dataKey="strike" stroke="#555" tick={{ fill: '#888', fontSize: 10, fontFamily: 'monospace' }} />
         <YAxis stroke="#555" tick={{ fill: '#888', fontSize: 10, fontFamily: 'monospace' }} width={40} />
         <Tooltip cursor={{ fill: '#222' }} contentStyle={{ backgroundColor: '#111', borderColor: '#333', color: '#fff', fontFamily: 'monospace', fontSize: '10px' }} formatter={(value: any) => [`${value}`, 'Net Gamma']} />
         <ReferenceLine y={0} stroke="#444" />
         <Bar dataKey="gex" radius={[2, 2, 0, 0]}>
-          {gexData.map((entry, index) => (
+          {data.data.map((entry: any, index: number) => (
             <Cell key={`cell-${index}`} fill={entry.gex > 0 ? '#00ffff' : '#ef4444'} />
           ))}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
-}
+});
 
-// --- PHASE 3: THE SCALPEL INJECTED INTO FLOW ---
-function OptionsFlow({ ticker }: { ticker: string }) {
-  const [tape, setTape] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+const OptionsFlow = React.memo(function OptionsFlow({ ticker }: { ticker: string }) {
+  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/flow?ticker=${ticker}`, fetcher, { refreshInterval: 15000 }); // Refreshes tape every 15s automatically
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [sizeFilter, setSizeFilter] = useState('ALL');
 
-  const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app";
+  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
+  const tape = data?.tape || [];
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${ENGINE_URL}/api/flow?ticker=${ticker}`)
-      .then((res) => res.json())
-      .then((data) => { 
-        setTape(data.tape || []); 
-        setLoading(false); 
-      })
-      .catch(() => setLoading(false));
-  }, [ticker]);
-
-  const filteredTape = tape.filter(trade => {
+  const filteredTape = tape.filter((trade: any) => {
     if (typeFilter !== 'ALL' && trade.ctype && trade.ctype !== typeFilter) return false;
-    
     if (sizeFilter !== 'ALL') {
       const prem = trade.premium || "";
       if (sizeFilter === '1M+' && !prem.includes('M')) return false;
-      
       if (sizeFilter === '500K+') {
          if (!prem.includes('M') && !prem.includes('K')) return false;
-         if (prem.includes('K')) {
-           const num = parseFloat(prem.replace(/[^0-9.]/g, ''));
-           if (num < 500) return false;
-         }
+         if (prem.includes('K') && parseFloat(prem.replace(/[^0-9.]/g, '')) < 500) return false;
       }
     }
     return true;
   });
 
-  if (loading) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">SCANNING DARK POOLS...</div>;
-  }
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      
       <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-white/5 shrink-0">
         <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
           <button onClick={() => setTypeFilter('ALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>ALL</button>
           <button onClick={() => setTypeFilter('CALL')} className={`px-3 py-1 transition-colors ${typeFilter === 'CALL' ? 'bg-cyan-500/20 text-cyan-400 font-bold border-x border-cyan-500/30' : 'text-gray-500 hover:text-gray-300 border-x border-white/5'}`}>CALLS</button>
           <button onClick={() => setTypeFilter('PUT')} className={`px-3 py-1 transition-colors ${typeFilter === 'PUT' ? 'bg-fuchsia-500/20 text-fuchsia-400 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>PUTS</button>
         </div>
-        
         <div className="flex bg-black rounded border border-white/10 overflow-hidden text-[10px] shadow-inner">
           <button onClick={() => setSizeFilter('ALL')} className={`px-3 py-1 transition-colors ${sizeFilter === 'ALL' ? 'bg-white/20 text-white font-bold' : 'text-gray-500 hover:text-gray-300'}`}>SIZE: ALL</button>
           <button onClick={() => setSizeFilter('500K+')} className={`px-3 py-1 transition-colors ${sizeFilter === '500K+' ? 'bg-yellow-500/20 text-yellow-400 font-bold border-l border-yellow-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>500K+</button>
           <button onClick={() => setSizeFilter('1M+')} className={`px-3 py-1 transition-colors ${sizeFilter === '1M+' ? 'bg-green-500/20 text-green-400 font-bold border-l border-green-500/30' : 'text-gray-500 hover:text-gray-300 border-l border-white/5'}`}>1M+</button>
         </div>
       </div>
-
       <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
         {filteredTape.length === 0 ? (
            <div className="text-gray-500 font-mono text-xs text-center py-4">NO FLOW MATCHES ACTIVE FILTERS.</div>
         ) : (
-           filteredTape.map((trade, i) => (
+           filteredTape.map((trade: any, i: number) => (
             <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a1a]/80 border border-white/5 hover:border-cyan-500/50 rounded text-sm font-mono shrink-0 transition-colors">
               <div className="flex flex-col">
                 <span className="text-white font-bold tracking-wider">
@@ -588,34 +483,17 @@ function OptionsFlow({ ticker }: { ticker: string }) {
       </div>
     </div>
   );
-}
+});
 
-function MacroDocket({ ticker }: { ticker: string }) {
-  const [news, setNews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+const MacroDocket = React.memo(function MacroDocket({ ticker }: { ticker: string }) {
+  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/news?ticker=${ticker}`, fetcher);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${ENGINE_URL}/api/news?ticker=${ticker}`)
-      .then((res) => res.json())
-      .then((data) => { 
-        setNews(data.news || []); 
-        setLoading(false); 
-      })
-      .catch(() => setLoading(false));
-  }, [ticker]);
-
-  if (loading) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
-  }
-  
-  if (news.length === 0) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO NEWS FOUND.</div>;
-  }
+  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">PULLING WIRE...</div>;
+  if (!data || !data.news || data.news.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO NEWS FOUND.</div>;
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
-      {news.map((item, i) => (
+      {data.news.map((item: any, i: number) => (
         <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
           <h3 className="text-[13px] md:text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
           <p className="text-[10px] md:text-xs text-gray-500 font-mono">{item.source}</p>
@@ -623,30 +501,13 @@ function MacroDocket({ ticker }: { ticker: string }) {
       ))}
     </div>
   );
-}
+});
 
-function OptionsHeatmap({ ticker }: { ticker: string }) {
-  const [heatmapData, setHeatmapData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+const OptionsHeatmap = React.memo(function OptionsHeatmap({ ticker }: { ticker: string }) {
+  const { data, isLoading } = useSWR(`${ENGINE_URL}/api/heatmap?ticker=${ticker}`, fetcher);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${ENGINE_URL}/api/heatmap?ticker=${ticker}`)
-      .then((res) => res.json())
-      .then((data) => { 
-        setHeatmapData(data.data || []); 
-        setLoading(false); 
-      })
-      .catch(() => setLoading(false));
-  }, [ticker]);
-
-  if (loading) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RENDERING MATRIX...</div>;
-  }
-  
-  if (heatmapData.length === 0) {
-    return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO MATRIX DATA FOUND.</div>;
-  }
+  if (isLoading) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center animate-pulse">RENDERING MATRIX...</div>;
+  if (!data || !data.data || data.data.length === 0) return <div className="text-gray-500 font-mono text-sm h-full flex items-center justify-center">NO MATRIX DATA FOUND.</div>;
 
   const getCellColor = (vol: number) => {
     if (vol > 500) return 'bg-cyan-400 text-black font-bold shadow-[0_0_8px_rgba(0,255,255,0.5)] border border-cyan-300';
@@ -664,9 +525,8 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
         <div>MID</div>
         <div>FAR</div>
       </div>
-      
       <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
-        {heatmapData.map((row, i) => (
+        {data.data.map((row: any, i: number) => (
           <div key={i} className="grid grid-cols-4 gap-1 text-center">
             <div className="flex items-center justify-center bg-[#222]/80 border border-white/5 rounded py-2 font-bold text-gray-200">${row.strike}</div>
             <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp1)}`}>{row.exp1 > 0 ? row.exp1 : '-'}</div>
@@ -677,4 +537,4 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
       </div>
     </div>
   );
-}
+});
