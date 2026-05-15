@@ -87,24 +87,24 @@ export default function SportsMatrix() {
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
       
-      {/* HEADER */}
-      <header className="h-16 border-b border-[#222] bg-[#111] flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-green-500/20 border border-green-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,0,0.2)]">
+      {/* MOBILE-RESPONSIVE HEADER */}
+      <header className="h-auto lg:h-16 border-b border-[#222] bg-[#111] flex flex-col md:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-3 md:gap-0">
+        <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
+          <div className="w-8 h-8 rounded bg-green-500/20 border border-green-500 flex items-center justify-center shadow-[0_0_10px_rgba(0,255,0,0.2)] shrink-0">
             <Trophy className="text-green-400 w-4 h-4" />
           </div>
-          <span className="font-mono font-bold tracking-widest text-lg">ACE'S HOUSE | SPORTS MATRIX</span>
+          <span className="font-mono font-bold tracking-widest text-base md:text-lg text-center md:text-left">ACE'S HOUSE | SPORTS MATRIX</span>
         </div>
-        <div className="font-mono text-sm text-gray-400 flex items-center gap-2">
-          <Cpu className="w-4 h-4 text-purple-400" />
+        <div className="font-mono text-[10px] md:text-sm text-gray-400 flex items-center gap-2">
+          <Cpu className="w-3 h-3 md:w-4 md:h-4 text-purple-400" />
           POWERED BY: <span className="text-purple-400 font-bold">APEX OMNI-AGENT</span>
         </div>
       </header>
 
-      <main className="flex-1 p-4 grid grid-cols-12 gap-4 min-h-0">
+      <main className="flex-1 p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-y-auto lg:overflow-hidden">
         
         {/* LEFT COLUMN: THE INPUT TERMINAL */}
-        <section className="col-span-4 bg-[#111] border border-[#222] rounded-md flex flex-col shadow-lg overflow-hidden">
+        <section className="col-span-1 lg:col-span-4 bg-[#111] border border-[#222] rounded-md flex flex-col shadow-lg overflow-hidden shrink-0">
           <div className="p-4 border-b border-[#222] bg-[#151515]">
             <h2 className="text-sm font-bold text-gray-300 tracking-widest flex items-center gap-2">
               <Terminal className="w-4 h-4 text-cyan-400" /> QUANTITATIVE PARAMETERS
@@ -112,15 +112,15 @@ export default function SportsMatrix() {
           </div>
           
           <div className="p-4 overflow-y-auto custom-scrollbar flex-1">
-            <form onSubmit={handleGenerate} className="flex flex-col gap-5">
+            <form onSubmit={handleGenerate} className="flex flex-col gap-4 lg:gap-5">
               
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-500 tracking-widest">OPERATION MODE</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setMode("PREDICTOR")} className={`py-2 px-3 text-xs font-bold rounded border transition-colors ${mode === "PREDICTOR" ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:border-[#555]'}`}>
+                  <button type="button" onClick={() => setMode("PREDICTOR")} className={`py-2 px-2 md:px-3 text-[10px] md:text-xs font-bold rounded border transition-colors ${mode === "PREDICTOR" ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:border-[#555]'}`}>
                     <Crosshair className="w-3 h-3 inline mr-1" /> GAME PREDICTOR
                   </button>
-                  <button type="button" onClick={() => setMode("PARLAY")} className={`py-2 px-3 text-xs font-bold rounded border transition-colors ${mode === "PARLAY" ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:border-[#555]'}`}>
+                  <button type="button" onClick={() => setMode("PARLAY")} className={`py-2 px-2 md:px-3 text-[10px] md:text-xs font-bold rounded border transition-colors ${mode === "PARLAY" ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:border-[#555]'}`}>
                     <Zap className="w-3 h-3 inline mr-1" /> GOD PARLAY
                   </button>
                 </div>
@@ -141,7 +141,7 @@ export default function SportsMatrix() {
                 <label className="text-xs font-bold text-gray-500 tracking-widest">MATCHUP</label>
                 <div className="flex items-center gap-2">
                   <input type="text" placeholder="e.g. SEA" value={team1} onChange={(e) => setTeam1(e.target.value)} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-white focus:outline-none focus:border-green-500 font-mono uppercase text-center" required />
-                  <span className="text-xs font-bold text-gray-500">VS</span>
+                  <span className="text-[10px] md:text-xs font-bold text-gray-500">VS</span>
                   <input type="text" placeholder="e.g. VGK" value={team2} onChange={(e) => setTeam2(e.target.value)} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-white focus:outline-none focus:border-green-500 font-mono uppercase text-center" required />
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function SportsMatrix() {
 
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-gray-500 tracking-widest">MARKET TYPE</label>
-                <select value={market} onChange={(e) => setMarket(e.target.value)} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-white focus:outline-none focus:border-green-500 font-mono">
+                <select value={market} onChange={(e) => setMarket(e.target.value)} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-white focus:outline-none focus:border-green-500 font-mono truncate">
                   {getMarketOptions().map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
@@ -165,7 +165,7 @@ export default function SportsMatrix() {
                 </div>
               )}
 
-              <button type="submit" disabled={loading} className="mt-4 w-full bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded uppercase tracking-widest transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
+              <button type="submit" disabled={loading} className="mt-2 lg:mt-4 w-full bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded text-xs md:text-sm uppercase tracking-widest transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
                 {loading ? <span className="animate-pulse">RUNNING L20 BACKTESTS...</span> : <>ENGAGE APEX OMNI-AGENT <Activity className="w-4 h-4" /></>}
               </button>
 
@@ -174,53 +174,53 @@ export default function SportsMatrix() {
         </section>
 
         {/* RIGHT COLUMN: THE AI OUTPUT TERMINAL */}
-        <section className="col-span-8 bg-[#111] border border-[#222] rounded-md flex flex-col shadow-lg overflow-hidden relative">
+        <section className="col-span-1 lg:col-span-8 bg-[#111] border border-[#222] rounded-md flex flex-col shadow-lg overflow-hidden relative min-h-[400px]">
           
-          <div className="p-4 border-b border-[#222] bg-[#151515] flex justify-between items-center">
+          <div className="p-4 border-b border-[#222] bg-[#151515] flex justify-between items-center shrink-0">
             <h2 className="text-sm font-bold text-gray-300 tracking-widest flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-purple-400" /> APEX MATRIX OUTPUT
             </h2>
           </div>
 
-          <div className="flex-1 p-6 overflow-y-auto custom-scrollbar relative">
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar relative">
             {!loading && !result && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600 font-mono text-sm opacity-50">
-                <Trophy className="w-16 h-16 mb-4 text-gray-700" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600 font-mono text-xs md:text-sm opacity-50 p-4 text-center">
+                <Trophy className="w-12 h-12 md:w-16 md:h-16 mb-4 text-gray-700" />
                 <p>AWAITING QUANTITATIVE INPUT PARAMETERS...</p>
               </div>
             )}
 
             {loading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-green-500 font-mono text-sm">
-                <Activity className="w-12 h-12 mb-4 animate-bounce" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-green-500 font-mono text-xs md:text-sm p-4 text-center">
+                <Activity className="w-10 h-10 md:w-12 md:h-12 mb-4 animate-bounce" />
                 <p className="animate-pulse mb-1">SCRAPING LIVE VEGAS ODDS...</p>
-                <p className="animate-pulse text-xs text-green-700">Validating hit rates via Omni-Agent...</p>
+                <p className="animate-pulse text-[10px] md:text-xs text-green-700 mt-2">Validating hit rates via Omni-Agent...</p>
               </div>
             )}
 
             {result && !loading && (
-              <div className="animate-fade-in border border-[#333] bg-[#1a1a1a] rounded p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+              <div className="animate-fade-in border border-[#333] bg-[#1a1a1a] rounded p-4 md:p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                 
-                <div className="flex justify-between items-start border-b border-[#333] pb-4 mb-4">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start border-b border-[#333] pb-4 mb-4 gap-3">
                   <div>
-                    <h1 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-                      {result.type === "PREDICTOR" ? <Crosshair className="text-cyan-400" /> : <Zap className="text-yellow-400" />}
+                    <h1 className="text-lg md:text-xl font-bold text-white mb-1 flex items-center gap-2">
+                      {result.type === "PREDICTOR" ? <Crosshair className="text-cyan-400 shrink-0" /> : <Zap className="text-yellow-400 shrink-0" />}
                       ACE'S HOUSE: {result.type === "PREDICTOR" ? "GAME PREDICTOR" : "GOD PARLAY"}
                     </h1>
-                    <p className="text-gray-400 font-mono text-sm">Target: {result.matchup} | {result.date}</p>
+                    <p className="text-gray-400 font-mono text-xs md:text-sm">Target: {result.matchup} | {result.date}</p>
                   </div>
-                  <div className={`px-3 py-1 rounded text-xs font-bold font-mono border ${result.type === "PREDICTOR" ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400' : 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400'}`}>
+                  <div className={`px-2 py-1 md:px-3 md:py-1 rounded text-[10px] md:text-xs font-bold font-mono border w-fit ${result.type === "PREDICTOR" ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400' : 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400'}`}>
                     {result.market.toUpperCase()}
                   </div>
                 </div>
 
                 {/* THE PARSED ANTHROPIC TEXT */}
-                <div className="font-mono text-sm text-gray-300 leading-relaxed mb-6">
+                <div className="font-mono text-xs md:text-sm text-gray-300 leading-relaxed mb-6">
                   {formatMarkdown(result.ai_text)}
                 </div>
 
-                <div className="mt-8 border-t border-[#333] pt-4">
-                  <p className="text-xs text-gray-500 font-mono italic">
+                <div className="mt-6 md:mt-8 border-t border-[#333] pt-4">
+                  <p className="text-[10px] md:text-xs text-gray-500 font-mono italic">
                     ⚠️ RISK DISCLOSURE: This is an algorithmic data map, not financial advice. Wagering carries extreme variance. Strictly manage your bankroll and tail at your own risk.
                   </p>
                 </div>
