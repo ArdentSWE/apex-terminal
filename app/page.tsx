@@ -44,8 +44,10 @@ export default function Terminal() {
   // ------------------------------------------------------------------
   if (status === "loading") {
     return (
-      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center text-cyan-500 font-mono text-sm">
-        <div className="flex flex-col items-center animate-pulse">
+      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center text-cyan-500 font-mono text-sm relative overflow-hidden">
+        {/* Ambient Glows */}
+        <div className="absolute top-1/4 left-1/4 w-[50%] h-[50%] bg-cyan-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
+        <div className="flex flex-col items-center animate-pulse relative z-10">
           <Activity className="w-12 h-12 mb-4" />
           <p>ESTABLISHING SECURE CONNECTION...</p>
         </div>
@@ -76,8 +78,12 @@ export default function Terminal() {
     };
 
     return (
-      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center font-mono p-4">
-        <div className="bg-[#111] border border-[#333] p-8 md:p-10 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] max-w-md w-full text-center">
+      <div className="flex h-screen bg-[#0a0a0a] items-center justify-center font-mono p-4 relative overflow-hidden">
+        {/* Ambient Glows */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
+        
+        <div className="bg-[#111]/60 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] max-w-md w-full text-center relative z-10">
           <div className="w-16 h-16 mx-auto bg-cyan-500/10 border border-cyan-500/50 rounded-full flex items-center justify-center mb-6 shadow-[0_0_15px_rgba(0,255,255,0.2)]">
             <Lock className="w-8 h-8 text-cyan-500" />
           </div>
@@ -91,7 +97,7 @@ export default function Terminal() {
                 type="text" 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                className="w-full bg-[#1a1a1a]/80 border border-white/10 text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
                 required
               />
             </div>
@@ -101,7 +107,7 @@ export default function Terminal() {
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`w-full bg-[#1a1a1a] border ${authError ? 'border-red-500' : 'border-[#333]'} text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm`}
+                className={`w-full bg-[#1a1a1a]/80 border ${authError ? 'border-red-500' : 'border-white/10'} text-white rounded py-2 px-3 focus:outline-none focus:border-cyan-500 transition-colors text-sm`}
                 required
               />
               {authError && <p className="text-[10px] md:text-xs text-red-500 mt-2 font-bold">{authError}</p>}
@@ -109,7 +115,7 @@ export default function Terminal() {
             <button 
               type="submit"
               disabled={isAuthenticating}
-              className="w-full mt-4 bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-800 text-black font-bold py-3 rounded transition-colors flex items-center justify-center gap-3 tracking-widest text-xs md:text-sm"
+              className="w-full mt-4 bg-cyan-600/80 hover:bg-cyan-500 backdrop-blur-sm disabled:bg-cyan-800 text-white font-bold py-3 rounded transition-colors flex items-center justify-center gap-3 tracking-widest text-xs md:text-sm border border-cyan-400/50"
             >
               {isAuthenticating ? <Activity className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />} 
               {isAuthenticating ? 'DECRYPTING...' : 'INITIATE HANDSHAKE'}
@@ -132,10 +138,14 @@ export default function Terminal() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden relative">
       
+      {/* --- RADIAL AMBIENT GLOWS --- */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/20 blur-[150px] rounded-full pointer-events-none z-0" />
+
       {/* MOBILE-RESPONSIVE HEADER WITH LOGOUT */}
-      <header className="h-auto lg:h-16 border-b border-[#222] bg-[#111] flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-4 lg:gap-0 z-10">
+      <header className="h-auto lg:h-16 border-b border-white/5 bg-[#111]/80 backdrop-blur-xl flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 shrink-0 gap-4 lg:gap-0 z-20 relative">
         
         <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
           <div className="flex items-center gap-3">
@@ -146,7 +156,7 @@ export default function Terminal() {
           </div>
           
           {activeTicker && (
-            <button onClick={() => setActiveTicker(null)} className="lg:hidden flex items-center gap-1 text-[10px] hover:text-white text-gray-400 transition-colors bg-[#222] px-2 py-1 rounded border border-[#333]">
+            <button onClick={() => setActiveTicker(null)} className="lg:hidden flex items-center gap-1 text-[10px] hover:text-white text-gray-400 transition-colors bg-[#222]/80 px-2 py-1 rounded border border-white/10">
               <ArrowLeft className="w-3 h-3" /> BACK
             </button>
           )}
@@ -159,14 +169,14 @@ export default function Terminal() {
             placeholder="Search Ticker (e.g. SPY, NVDA)..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full bg-[#1a1a1a] border border-[#333] rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase shadow-inner"
+            className="w-full bg-[#1a1a1a]/80 border border-white/10 rounded-md py-2 pl-10 pr-4 font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors uppercase shadow-inner backdrop-blur-md"
           />
         </form>
 
         <div className="font-mono text-sm flex flex-wrap items-center justify-between w-full lg:w-auto gap-4">
           <div className="flex items-center gap-4">
             {activeTicker && (
-              <button onClick={() => setActiveTicker(null)} className="hidden lg:flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222] px-3 py-1 rounded border border-[#333]">
+              <button onClick={() => setActiveTicker(null)} className="hidden lg:flex items-center gap-1 text-xs hover:text-white text-gray-400 transition-colors bg-[#222]/80 px-3 py-1 rounded border border-white/10">
                 <ArrowLeft className="w-3 h-3" /> BACK TO GLOBAL
               </button>
             )}
@@ -176,17 +186,20 @@ export default function Terminal() {
           {/* USER PROFILE & LOGOUT */}
           <div className="flex items-center gap-3 lg:pl-4 lg:border-l border-[#333]">
             <span className="text-[10px] md:text-xs text-gray-300 font-bold uppercase hidden md:inline-block">{session?.user?.name}</span>
-            <button onClick={() => signOut()} className="text-[10px] md:text-xs text-red-400 hover:text-red-300 transition-colors font-bold tracking-widest bg-red-500/10 border border-red-500/30 px-2 py-1 rounded">DISCONNECT</button>
+            <button onClick={() => signOut()} className="text-[10px] md:text-xs text-red-400 hover:text-red-300 transition-colors font-bold tracking-widest bg-red-500/10 border border-red-500/30 px-2 py-1 rounded backdrop-blur-sm">DISCONNECT</button>
           </div>
         </div>
       </header>
 
       {/* WHALE TAPE SCROLLING MARQUEE */}
-      <WhaleTape />
+      <div className="z-10 relative">
+        <WhaleTape />
+      </div>
 
       {/* DYNAMIC VIEW ROUTING */}
-      {activeTicker ? <TickerDashboard ticker={activeTicker} /> : <GlobalDashboard />}
-
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
+        {activeTicker ? <TickerDashboard ticker={activeTicker} /> : <GlobalDashboard />}
+      </div>
     </div>
   );
 }
@@ -216,19 +229,19 @@ function GlobalDashboard() {
   }, []);
 
   return (
-    <main className="flex-1 p-3 lg:p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+    <main className="p-3 lg:p-4 flex flex-col gap-4 max-w-[1600px] mx-auto">
       
       {/* TOP ROW: NEWS & ALERTS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
-        <section className="col-span-1 lg:col-span-4 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[400px] lg:h-[500px]">
-          <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+        <section className="col-span-1 lg:col-span-4 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[400px] lg:h-[500px]">
+          <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
             <Globe className="w-4 h-4 text-blue-400" />
             <h2 className="text-xs font-bold text-gray-400 tracking-widest">GLOBAL BREAKING NEWS</h2>
           </div>
           <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
             {news.length === 0 ? <p className="text-xs font-mono text-gray-500 animate-pulse">PULLING LIVE WIRES...</p> : news.map((item, i) => (
-              <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
+              <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-4 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
                 <h3 className="text-sm text-gray-200 font-medium mb-2">{item.title}</h3>
                 <p className="text-xs text-gray-500 font-mono">Source: <span className="text-cyan-400">{item.source}</span></p>
               </a>
@@ -236,8 +249,8 @@ function GlobalDashboard() {
           </div>
         </section>
 
-        <section className="col-span-1 lg:col-span-8 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg overflow-hidden h-[400px] lg:h-[500px]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0 gap-2">
+        <section className="col-span-1 lg:col-span-8 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg overflow-hidden h-[400px] lg:h-[500px]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-white/10 pb-2 shrink-0 gap-2">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-yellow-400" />
               <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE QUANTITATIVE SETUPS</h2>
@@ -258,7 +271,7 @@ function GlobalDashboard() {
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {plays.map((play, i) => (
-                  <div key={i} className="flex flex-col p-4 md:p-5 bg-[#1a1a1a] border border-[#333] rounded shadow-inner">
+                  <div key={i} className="flex flex-col p-4 md:p-5 bg-[#1a1a1a]/80 border border-white/5 rounded shadow-inner">
                     <div className="flex flex-wrap justify-between items-start mb-3 border-b border-[#333] pb-3 gap-3">
                       <div className="flex items-center gap-3">
                         <span className="text-xl md:text-2xl font-black text-white">{play.ticker}</span>
@@ -274,7 +287,7 @@ function GlobalDashboard() {
                       <div>🎯 Confidence: <span className="text-white font-bold">{play.confidence}%</span></div>
                       <div>⏳ Expiration: <span className="text-white font-bold">{play.expiration}</span></div>
                     </div>
-                    <div className="text-xs md:text-sm text-gray-300 bg-[#111] border border-[#222] p-3 rounded font-mono leading-relaxed">
+                    <div className="text-xs md:text-sm text-gray-300 bg-[#0a0a0a]/50 border border-white/5 p-3 rounded font-mono leading-relaxed">
                       <span className="text-yellow-400 font-bold mr-2">🧠 THESIS:</span>{play.thesis}
                     </div>
                   </div>
@@ -299,10 +312,10 @@ function GlobalDashboard() {
 // ------------------------------------------------------------------
 function TickerDashboard({ ticker }: { ticker: string }) {
   return (
-    <main className="flex-1 p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-4 overflow-y-auto lg:overflow-hidden">
+    <main className="p-3 lg:p-4 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-4 max-w-[1600px] mx-auto">
       
-      <section className="col-span-1 lg:col-span-8 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
-        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+      <section className="col-span-1 lg:col-span-8 lg:row-span-1 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
+        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
           <BarChart2 className="w-4 h-4 text-purple-400" />
           <h2 className="text-xs font-bold text-gray-400 tracking-widest">GAMMA EXPOSURE (GEX) - {ticker}</h2>
         </div>
@@ -311,8 +324,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
-        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+      <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
+        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
           <Layers className="w-4 h-4 text-cyan-400" />
           <h2 className="text-xs font-bold text-gray-400 tracking-widest">LIVE PREMIUM FLOW</h2>
         </div>
@@ -321,8 +334,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="col-span-1 lg:col-span-5 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
-        <div className="flex items-center justify-between mb-4 border-b border-[#222] pb-2 shrink-0">
+      <section className="col-span-1 lg:col-span-5 lg:row-span-1 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg min-h-[350px] lg:min-h-0">
+        <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2 shrink-0">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-green-400" />
             <h2 className="text-xs font-bold text-gray-400 tracking-widest">APEX AI THESIS</h2>
@@ -333,8 +346,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
-        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+      <section className="col-span-1 lg:col-span-4 lg:row-span-1 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
+        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
            <Activity className="w-4 h-4 text-orange-400" />
            <h2 className="text-xs font-bold text-gray-400 tracking-widest">OPTIONS MATRIX</h2>
         </div>
@@ -343,8 +356,8 @@ function TickerDashboard({ ticker }: { ticker: string }) {
         </div>
       </section>
 
-      <section className="col-span-1 lg:col-span-3 lg:row-span-1 bg-[#111] border border-[#222] rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
-        <div className="flex items-center gap-2 mb-4 border-b border-[#222] pb-2 shrink-0">
+      <section className="col-span-1 lg:col-span-3 lg:row-span-1 bg-[#111]/60 backdrop-blur-xl border border-white/5 rounded-md p-4 flex flex-col shadow-lg h-[350px] lg:h-auto">
+        <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 shrink-0">
           <Newspaper className="w-4 h-4 text-yellow-400" />
           <h2 className="text-xs font-bold text-gray-400 tracking-widest">TICKER DOCKET</h2>
         </div>
@@ -446,7 +459,7 @@ function OptionsFlow({ ticker }: { ticker: string }) {
   return (
     <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2 h-full">
       {tape.map((trade, i) => (
-        <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a1a] border border-[#333] hover:border-[#444] rounded text-sm font-mono shrink-0 transition-colors">
+        <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a1a]/80 border border-white/5 hover:border-cyan-500/50 rounded text-sm font-mono shrink-0 transition-colors">
           <div className="flex flex-col">
             <span className="text-white font-bold tracking-wider">{trade.ticker}</span>
             <span className="text-xs text-gray-500">{trade.time}</span>
@@ -479,7 +492,7 @@ function MacroDocket({ ticker }: { ticker: string }) {
   return (
     <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 h-full">
       {news.map((item, i) => (
-        <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a] border border-[#333] rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
+        <a key={i} href={item.url} target="_blank" rel="noreferrer" className="block p-3 bg-[#1a1a1a]/80 border border-white/5 rounded hover:border-cyan-500/50 transition-all cursor-pointer shrink-0">
           <h3 className="text-[13px] md:text-sm text-gray-200 font-medium mb-1 line-clamp-2">{item.title}</h3>
           <p className="text-[10px] md:text-xs text-gray-500 font-mono">{item.source}</p>
         </a>
@@ -506,14 +519,14 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
   const getCellColor = (vol: number) => {
     if (vol > 500) return 'bg-cyan-400 text-black font-bold shadow-[0_0_8px_rgba(0,255,255,0.5)] border border-cyan-300';
     if (vol > 200) return 'bg-cyan-500/60 text-white border border-cyan-500/50';
-    if (vol > 100) return 'bg-cyan-500/30 text-gray-300 border border-[#333]';
-    if (vol > 0) return 'bg-[#1a1a1a] text-gray-500 border border-[#333]';
+    if (vol > 100) return 'bg-cyan-500/30 text-gray-300 border border-white/5';
+    if (vol > 0) return 'bg-[#1a1a1a]/80 text-gray-500 border border-white/5';
     return 'text-gray-700';
   };
 
   return (
     <div className="flex flex-col h-full overflow-hidden font-mono text-[10px] md:text-xs">
-      <div className="grid grid-cols-4 gap-1 mb-2 text-gray-400 font-bold text-center border-b border-[#333] pb-2 shrink-0">
+      <div className="grid grid-cols-4 gap-1 mb-2 text-gray-400 font-bold text-center border-b border-white/10 pb-2 shrink-0">
         <div>STRIKE</div>
         <div>NEAR</div>
         <div>MID</div>
@@ -523,7 +536,7 @@ function OptionsHeatmap({ ticker }: { ticker: string }) {
       <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
         {heatmapData.map((row, i) => (
           <div key={i} className="grid grid-cols-4 gap-1 text-center">
-            <div className="flex items-center justify-center bg-[#222] border border-[#333] rounded py-2 font-bold text-gray-200">${row.strike}</div>
+            <div className="flex items-center justify-center bg-[#222]/80 border border-white/5 rounded py-2 font-bold text-gray-200">${row.strike}</div>
             <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp1)}`}>{row.exp1 > 0 ? row.exp1 : '-'}</div>
             <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp2)}`}>{row.exp2 > 0 ? row.exp2 : '-'}</div>
             <div className={`flex items-center justify-center rounded py-2 transition-colors ${getCellColor(row.exp3)}`}>{row.exp3 > 0 ? row.exp3 : '-'}</div>

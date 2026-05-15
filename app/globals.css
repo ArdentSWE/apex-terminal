@@ -1,17 +1,24 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --color-apex-bg: #0d1117;
-  --color-apex-panel: #161b22;
-  --color-apex-border: #30363d;
-  --color-apex-cyan: #00FFFF;
-  --color-apex-red: #FF003F;
-  --color-apex-green: #2ecc71;
-  --color-apex-gold: #FFD700;
-  --color-apex-muted: #8b949e;
+/* --- PHASE 1: PHANTOM SCROLLBARS --- */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-
-body {
-  background-color: var(--color-apex-bg);
-  color: #ffffff;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+/* Only reveal the scrollbar when the container is hovered */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1); 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.4); /* Cyan glow on active hover */
 }
