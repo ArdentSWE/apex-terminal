@@ -1,36 +1,45 @@
 import "./globals.css";
-import { Inter } from 'next/font/google'
-import Sidebar from '@/components/Sidebar'
-import { Providers } from './Providers' // Our NextAuth Gatekeeper
+import { Inter } from 'next/font/google';
+import Sidebar from '@/components/Sidebar';
+import SportsTicker from '@/components/SportsTicker'; // The new neon marquee
+import { Providers } from './Providers'; // Your NextAuth Gatekeeper
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: "Ace's House | Quantitative Pipeline",
-  description: 'Institutional-grade market and sports analytics.',
-}
+  title: "ACE'S HOUSE | Quant Matrix",
+  description: "Institutional-grade market and sports analytics.",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} flex h-screen bg-[#0a0a0a] text-white overflow-hidden`}>
-        {/* We wrap the entire app in our custom NextAuth provider instead of Clerk */}
+      {/* Updated background to the deep Philips Hue violet-black */}
+      <body className={`${inter.className} flex flex-col h-screen bg-[#090014] text-white overflow-hidden`}>
         <Providers>
           
-          {/* THE PERSISTENT SIDEBAR */}
-          <Sidebar />
+          {/* MAIN MATRIX: Sidebar + Dynamic Page Content */}
+          <div className="flex flex-1 overflow-hidden pb-10"> {/* pb-10 prevents content from hiding behind the ticker */}
+            
+            {/* THE PERSISTENT SIDEBAR */}
+            <Sidebar />
 
-          {/* THE DYNAMIC CONTENT AREA */}
-          <div className="flex-1 overflow-hidden">
-            {children}
+            {/* THE DYNAMIC CONTENT AREA */}
+            <div className="flex-1 relative overflow-hidden flex flex-col">
+              {children}
+            </div>
+
           </div>
+
+          {/* THE PERSISTENT NEON SPORTS TICKER */}
+          <SportsTicker />
 
         </Providers>
       </body>
     </html>
-  )
+  );
 }
