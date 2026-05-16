@@ -1,7 +1,6 @@
 "use client";
 import React from 'react';
 import useSWR from 'swr';
-import Sidebar from '@/components/Sidebar';
 import { Lightbulb, Zap, Clock, ShieldAlert } from 'lucide-react';
 
 const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app"; 
@@ -42,9 +41,8 @@ export default function TradeIdeasPage() {
 
   return (
     <div className="flex h-screen bg-[#02010a] text-white font-sans overflow-hidden">
-      <Sidebar />
       
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+      <main className="flex-1 flex flex-col relative overflow-hidden w-full">
         <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-violet-900/10 blur-[150px] rounded-full pointer-events-none z-0" />
 
         <header className="h-16 border-b border-white/5 bg-white/[0.01] backdrop-blur-md flex items-center px-6 shrink-0 z-10">

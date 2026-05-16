@@ -4,7 +4,6 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { Search, Globe, TrendingUp, Anchor, Lock, Activity } from 'lucide-react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar';
 
 const ENGINE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apex-engine-production.up.railway.app"; 
 
@@ -101,9 +100,8 @@ export default function HomeDashboard() {
 
   return (
     <div className="flex h-screen bg-[#02010a] text-white font-sans overflow-hidden">
-      <Sidebar />
       
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+      <main className="flex-1 flex flex-col relative overflow-hidden w-full">
         {/* Background Gradients */}
         <div className="absolute top-0 right-0 w-[800px] h-[600px] bg-indigo-900/10 blur-[120px] rounded-full pointer-events-none z-0" />
         
